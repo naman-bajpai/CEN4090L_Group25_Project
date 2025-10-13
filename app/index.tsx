@@ -10,7 +10,6 @@ import {
   View
 } from 'react-native';
 
-const { width, height } = Dimensions.get('window');
 
 export default function LandingScreen() {
   return (
@@ -19,7 +18,7 @@ export default function LandingScreen() {
       style={styles.gradient}
     >
         <View style={styles.content}>
-          {/* Header Section */}
+      
           <View style={styles.header}>
             <View style={styles.logoContainer}>
               <Ionicons name="search" size={40} color="#FFFFFF" />
@@ -30,7 +29,7 @@ export default function LandingScreen() {
             </Text>
           </View>
 
-          {/* Features Section */}
+          
           <View style={styles.featuresContainer}>
             <View style={styles.featureItem}>
               <Ionicons name="eye" size={24} color="#FFFFFF" />
@@ -46,7 +45,7 @@ export default function LandingScreen() {
             </View>
           </View>
 
-          {/* Action Buttons */}
+      
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
               style={styles.primaryButton}
