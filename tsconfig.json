@@ -2,16 +2,30 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"
       ]
-    }
+    },
+    "noEmit": true,
+    "skipLibCheck": true
   },
   "include": [
-    "**/*.ts",
-    "**/*.tsx",
+    "app",
+    "components",
+    "lib",
+    "types",
+    "*.ts",
+    "*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "supabase",
+    "supabase/**",
+    "**/__tests__/**",
+    "**/__mocks__/**"
   ]
 }

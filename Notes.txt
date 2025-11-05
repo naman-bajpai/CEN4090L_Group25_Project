@@ -1,0 +1,96 @@
+Ammiel:
+
+Bootstrapped Supabase + authentication for the Expo app.
+
+Added auth screens, session handling, private storage helpers, and database/RLS SQL.
+
+Fixed typed-routes navigation, TypeScript errors, and config loading issues.
+
+Added Files:
+
+components/
+• Screen.tsx – Safe-area wrapper with consistent padding and layout.
+• Button.tsx – Reusable button styled with FSU Garnet primary color.
+• TextField.tsx – Reusable input field with forwardRef; displayName added for ESLint.
+
+lib/
+• supabase.ts – Creates Supabase client. Reads config from app.json (extra) with fallback to EXPO_PUBLIC_* environment vars.
+• session.ts – useAuth() hook that tracks session and loading state.
+• storage.ts – Handles uploads to private bucket and generates signed URLs using expo-file-system (base64 encoding).
+
+app/(auth)/
+• _layout.tsx – Defines stack for login, signup, and password reset screens.
+• login.tsx – Email + password sign-in; redirects to tabs after successful login.
+• signup.tsx – Creates a new user and stores metadata; sends verification email.
+• reset.tsx – Handles password reset flow using app’s URL scheme.
+
+app/(tabs)/
+• _layout.tsx – Tab navigator setup with screens for lost, found, and profile.
+• lost.tsx – Placeholder screen for future lost item list.
+• found.tsx – Placeholder screen for future found item list.
+• profile.tsx – Displays user session info and includes sign-out button.
+
+supabase/ (SQL files executed in Supabase)
+• schema.sql – Defines tables: profiles, items, notifications.
+• policies.sql – Row-Level Security (RLS): restricts access to only user-owned data.
+• storage.sql – Creates private “item-images” bucket with secure RLS policies.
+• seed.sql – Optional sample data for testing (profiles, items, notifications).
+
+Modified Files:
+
+app.json
+• Added "extra" block containing:
+SUPABASE_URL
+SUPABASE_ANON_KEY
+• Enables runtime access to Supabase credentials without requiring .env file.
+
+app/index.tsx
+• Kept landing page design.
+• Added auth gate logic:
+
+If loading: show splash
+
+If signed in: Redirect to /(tabs)/lost
+
+Otherwise: show public landing
+
+app/(auth)/_layout.tsx
+• Included reset screen; hides header and sets light status bar.
+
+Navigation Fixes
+• Replaced "/(tabs)/" with "/(tabs)" or "/(tabs)/lost" for typed route compliance.
+
+TypeScript and ESLint
+• Updated root tsconfig.json:
+
+noEmit: true, skipLibCheck: true
+
+added path alias "@/*"
+
+excluded node_modules and test directories.
+• Added displayName to TextField.tsx to remove react/display-name warning.
+• Updated storage.ts to use “base64” instead of deprecated EncodingType.
+
+Dependencies:
+
+• Installed @supabase/supabase-js
+• Retained all Expo template dependencies.
+
+System Behavior:
+
+• Config is loaded from app.json → extra (or EXPO_PUBLIC_* fallback).
+• Auth flow:
+
+Unauthenticated users see landing → Login/Signup screens.
+
+Authenticated users are redirected to tab group.
+• Tabs ready for Lost/Found listings; Profile includes sign-out.
+• Storage uses private bucket and signed URLs.
+• Database protected with RLS to isolate user data.
+
+Developer Notes:
+
+• After editing app.json or env variables, run:
+npx expo start -c
+• If VS Code shows TypeScript errors from node_modules, restart TS server.
+• Remove .env since app.json provides the config.

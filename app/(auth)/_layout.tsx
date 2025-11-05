@@ -10,10 +10,14 @@ export default function AuthLayout() {
           presentation: 'card',
         }}
       >
+        {/* existing screens */}
         <Stack.Screen name="login" />
         <Stack.Screen name="signup" />
+
+        {/* new reset password screen */}
+        <Stack.Screen name="reset" />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style="light" />
     </>
   );
 }

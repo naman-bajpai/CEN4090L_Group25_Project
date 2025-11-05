@@ -43,6 +43,10 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "SUPABASE_URL": "https://uhgyqvwonzigfqefqhtb.supabase.co",
+      "SUPABASE_ANON_KEY": "<your anon public key here>"
     }
   }
 }
