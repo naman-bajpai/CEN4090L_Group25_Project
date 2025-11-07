@@ -1,15 +1,33 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { forwardRef } from 'react';
-import { TextInput, TextInputProps, View, StyleSheet } from 'react-native';
+import { StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
 
-const TextField = forwardRef<TextInput, TextInputProps>((props, ref) => {
+interface TextFieldProps extends TextInputProps {
+  label?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+}
+
+const TextField = forwardRef<TextInput, TextFieldProps>(({ label, icon, style, ...props }, ref) => {
   return (
     <View style={styles.container}>
-      <TextInput
-        ref={ref}
-        {...props}
-        autoCapitalize={props.autoCapitalize ?? 'none'}
-        style={[styles.input, props.style]}
-      />
+      {label && <Text style={styles.label}>{label}</Text>}
+      <View style={styles.inputContainer}>
+        {icon && (
+          <Ionicons
+            name={icon}
+            size={20}
+            color="#666"
+            style={styles.icon}
+          />
+        )}
+        <TextInput
+          ref={ref}
+          {...props}
+          autoCapitalize={props.autoCapitalize ?? 'none'}
+          placeholderTextColor="#999"
+          style={[styles.input, icon && styles.inputWithIcon, style]}
+        />
+      </View>
     </View>
   );
 });
@@ -20,14 +38,34 @@ export default TextField;
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 12,
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    backgroundColor: '#FAFAFA',
+    paddingHorizontal: 16,
+    minHeight: 52,
+  },
+  icon: {
+    marginRight: 12,
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    flex: 1,
     fontSize: 16,
+    color: '#1F2937',
+    paddingVertical: 0,
+  },
+  inputWithIcon: {
+    paddingLeft: 0,
   },
 });

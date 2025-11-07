@@ -2,17 +2,24 @@ import * as FileSystem from 'expo-file-system';
 import { supabase } from './supabase';
 
 export async function uploadItemImage(userId: string, localUri: string) {
-  // ✅ Use 'base64' instead of FileSystem.EncodingType.Base64
+  const path = `${userId}/${Date.now()}.jpg`;
+  
+  // Read file as base64
   const base64 = await FileSystem.readAsStringAsync(localUri, {
     encoding: 'base64',
   });
 
-  const path = `${userId}/${Date.now()}.jpg`;
-  const buffer = Buffer.from(base64, 'base64');
+  // Convert base64 string to ArrayBuffer for React Native
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
 
+  // Supabase storage accepts ArrayBuffer or Blob
   const { error } = await supabase.storage
     .from('item-images')
-    .upload(path, buffer, {
+    .upload(path, bytes.buffer, {
       upsert: false,
       contentType: 'image/jpeg',
     });

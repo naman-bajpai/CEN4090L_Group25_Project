@@ -1,16 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/lib/session'; // <-- new
 
 export default function LandingScreen() {
   const { session, loading } = useAuth();
+  const insets = useSafeAreaInsets();
 
   // While checking session, show nothing or a minimal splash.
-  if (loading) return <LinearGradient colors={['#1E3A8A', '#3B82F6', '#60A5FA']} style={styles.gradient} />;
+  if (loading) return (
+    <View style={{ flex: 1 }}>
+      <StatusBar style="light" />
+      <LinearGradient colors={['#1E3A8A', '#3B82F6', '#60A5FA']} style={styles.gradient} />
+    </View>
+  );
 
   // If signed in, go straight to the tabs.
 // If signed in, go straight to the tabs.
@@ -18,8 +26,10 @@ if (session) return <Redirect href="/(tabs)" />;
 
   // Otherwise show the public landing screen.
   return (
-    <LinearGradient colors={['#1E3A8A', '#3B82F6', '#60A5FA']} style={styles.gradient}>
-      <View style={styles.content}>
+    <View style={{ flex: 1 }}>
+      <StatusBar style="light" />
+      <LinearGradient colors={['#1E3A8A', '#3B82F6', '#60A5FA']} style={styles.gradient}>
+        <View style={[styles.content, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             <Ionicons name="search" size={40} color="#FFFFFF" />
@@ -49,24 +59,25 @@ if (session) return <Redirect href="/(tabs)" />;
             onPress={() => router.push('/(auth)/login')}     // <-- route fixed
           >
             <Text style={styles.primaryButtonText}>Login</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> 
 
           <TouchableOpacity
             style={styles.secondaryButton}
-            onPress={() => router.push('/(auth)/signup')}    // <-- route fixed
+            onPress={() => router.push('/(auth)/signup')}     // <-- route fixed
           >
             <Text style={styles.secondaryButtonText}>Sign Up</Text>
           </TouchableOpacity>
         </View>
       </View>
-    </LinearGradient>
+      </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
   content: { flex: 1, paddingHorizontal: 24, paddingVertical: 20, justifyContent: 'space-between' },
-  header: { alignItems: 'center', marginTop: 40 },
+  header: { alignItems: 'center' },
   logoContainer: {
     width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center', alignItems: 'center', marginBottom: 20
