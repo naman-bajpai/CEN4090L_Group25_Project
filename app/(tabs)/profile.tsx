@@ -203,7 +203,7 @@ export default function ProfileScreen() {
       <ScrollView
         style={styles.scrollView}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ paddingTop: insets.top }}
+        contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 80 }}
       >
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>

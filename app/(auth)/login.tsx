@@ -60,7 +60,7 @@ export default function LoginScreen() {
         return Alert.alert('Sign In Failed', errorMessage);
       }
 
-      router.replace('/(tabs)');
+      router.replace('/(tabs)/home');
     } catch (error: any) {
       Alert.alert('Error', error.message || 'An unexpected error occurred. Please try again.');
     } finally {

@@ -43,8 +43,9 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#333',
+    color: '#374151',
     marginBottom: 8,
+    letterSpacing: -0.2,
   },
   inputContainer: {
     flexDirection: 'row',
@@ -63,7 +64,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: '#1F2937',
-    paddingVertical: 0,
+    paddingVertical: 14,
   },
   inputWithIcon: {
     paddingLeft: 0,

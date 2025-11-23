@@ -131,7 +131,7 @@ export default function HomeScreen() {
       <ScrollView
         style={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ paddingTop: insets.top }}
+        contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 80 }}
       >
       <View style={styles.header}>
         <Text style={styles.title}>FSU Lost & Found</Text>
@@ -188,7 +188,7 @@ export default function HomeScreen() {
             <ItemCard
               key={item.id}
               item={item}
-              onPress={() => router.push(`/(tabs)/${item.type === 'lost' ? 'lost' : 'found'}`)}
+              onPress={() => router.push(`/(tabs)/item/${item.id}`)}
             />
           ))
         )}

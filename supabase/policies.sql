@@ -41,7 +41,7 @@ create policy "notifications_select_self"
 create policy "notifications_insert_self"
   on public.notifications for insert
   to authenticated
-  with check (user_id = auth.uid());
+  with check (true); -- Allow users to create notifications for others (e.g., when messaging)
 
 create policy "notifications_update_self"
   on public.notifications for update

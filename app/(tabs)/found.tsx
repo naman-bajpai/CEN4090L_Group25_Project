@@ -2,6 +2,7 @@ import { claimItem, createNotification, getItemImageUrl, getItems } from '@/lib/
 import type { Tables } from '@/lib/database.types';
 import { useAuth } from '@/lib/session';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
@@ -103,6 +104,7 @@ function FoundItemCard({
 
 export default function FoundItemsScreen() {
   const { session } = useAuth();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const [items, setItems] = useState<ItemWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -206,6 +208,7 @@ export default function FoundItemsScreen() {
 
       <ScrollView
         style={styles.scrollView}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {items.length === 0 ? (
@@ -216,15 +219,20 @@ export default function FoundItemsScreen() {
           </View>
         ) : (
           items.map((item) => (
-            <FoundItemCard
+            <TouchableOpacity
               key={item.id}
-              item={item}
-              session={session}
-              onPress={() => {
-                setSelectedItem(item);
-                setClaimModalVisible(true);
-              }}
-            />
+              onPress={() => router.push(`/(tabs)/item/${item.id}`)}
+              activeOpacity={0.7}
+            >
+              <FoundItemCard
+                item={item}
+                session={session}
+                onPress={() => {
+                  setSelectedItem(item);
+                  setClaimModalVisible(true);
+                }}
+              />
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
