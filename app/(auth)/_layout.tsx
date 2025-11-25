@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 export default function AuthLayout() {
   return (
     <>
+      <StatusBar style="dark" />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -17,7 +18,6 @@ export default function AuthLayout() {
         {/* new reset password screen */}
         <Stack.Screen name="reset" />
       </Stack>
-      <StatusBar style="light" />
     </>
   );
 }

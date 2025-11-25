@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { forwardRef } from 'react';
+import React, { ReactNode, forwardRef } from 'react';
 import { StyleSheet, Text, TextInput, TextInputProps, View } from 'react-native';
 
 interface TextFieldProps extends TextInputProps {
   label?: string;
   icon?: keyof typeof Ionicons.glyphMap;
+  rightAccessory?: ReactNode;
 }
 
-const TextField = forwardRef<TextInput, TextFieldProps>(({ label, icon, style, ...props }, ref) => {
+const TextField = forwardRef<TextInput, TextFieldProps>(({ label, icon, rightAccessory, style, ...props }, ref) => {
   return (
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}
@@ -27,6 +28,11 @@ const TextField = forwardRef<TextInput, TextFieldProps>(({ label, icon, style, .
           placeholderTextColor="#999"
           style={[styles.input, icon && styles.inputWithIcon, style]}
         />
+        {rightAccessory ? (
+          <View style={styles.rightAccessory}>
+            {rightAccessory}
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -68,5 +74,11 @@ const styles = StyleSheet.create({
   },
   inputWithIcon: {
     paddingLeft: 0,
+  },
+  rightAccessory: {
+    marginLeft: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: 52,
   },
 });

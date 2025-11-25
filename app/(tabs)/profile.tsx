@@ -7,12 +7,15 @@ import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import Page from '@/components/Page';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -175,7 +178,7 @@ export default function ProfileScreen() {
   if (authLoading || loading) {
     return (
       <View style={styles.centerContainer}>
-        <StatusBar style="auto" />
+        <StatusBar style="dark" />
         <ActivityIndicator size="large" color="#782F40" />
       </View>
     );
@@ -184,7 +187,7 @@ export default function ProfileScreen() {
   if (!session) {
     return (
       <View style={styles.centerContainer}>
-        <StatusBar style="auto" />
+        <StatusBar style="dark" />
         <Ionicons name="person-circle-outline" size={64} color="#ccc" />
         <Text style={styles.emptyText}>Please sign in to view your profile</Text>
         <TouchableOpacity
@@ -198,12 +201,13 @@ export default function ProfileScreen() {
   }
 
   return (
+    <Page>
     <View style={styles.container}>
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
       <ScrollView
         style={styles.scrollView}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 80 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
       >
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
@@ -294,7 +298,11 @@ export default function ProfileScreen() {
         transparent={false}
         onRequestClose={() => setShowEditModal(false)}
       >
-        <View style={styles.modalContainer}>
+        <KeyboardAvoidingView
+          style={styles.modalContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Edit Profile</Text>
             <TouchableOpacity onPress={() => setShowEditModal(false)}>
@@ -302,7 +310,12 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.modalContent}>
+          <ScrollView
+            style={styles.modalContent}
+            contentContainerStyle={styles.modalContentContainer}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
             <Field
               placeholder="Full Name"
               value={editingName}
@@ -315,17 +328,18 @@ export default function ProfileScreen() {
               onPress={handleSaveProfile}
               disabled={saving}
             />
-          </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
+    </Page>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'transparent',
   },
   centerContainer: {
     flex: 1,
@@ -337,11 +351,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   profileHeader: {
-    backgroundColor: '#fff',
     alignItems: 'center',
     padding: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
   },
   avatarContainer: {
     width: 100,
@@ -554,6 +565,10 @@ const styles = StyleSheet.create({
     padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e5e5',
+  },
+  modalContentContainer: {
+    padding: 20,
+    paddingBottom: 40,
   },
   modalTitle: {
     fontSize: 24,

@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { Alert } from 'react-native';
+import Button from '@/components/Button';
 import Screen from '@/components/Screen';
 import Field from '@/components/TextField';
-import Button from '@/components/Button';
 import { supabase } from '@/lib/supabase';
+import { useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 
 export default function ResetPassword() {
   const [email, setEmail] = useState('');
@@ -18,8 +18,30 @@ export default function ResetPassword() {
 
   return (
     <Screen>
-      <Field placeholder="Email" keyboardType="email-address" value={email} onChangeText={setEmail} />
-      <Button title="Send reset link" onPress={onSubmit} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Field placeholder="Email" keyboardType="email-address" value={email} onChangeText={setEmail} />
+          <Button title="Send reset link" onPress={onSubmit} />
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: 16,
+  },
+});

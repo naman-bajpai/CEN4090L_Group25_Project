@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/session';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import Page from '@/components/Page';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -165,16 +166,17 @@ export default function FoundItemsScreen() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <StatusBar style="auto" />
+        <StatusBar style="dark" />
         <ActivityIndicator size="large" color="#782F40" />
       </View>
     );
   }
 
   return (
+    <Page>
     <View style={styles.container}>
-      <StatusBar style="auto" />
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <StatusBar style="dark" />
+      <View style={styles.header}>
         <Text style={styles.title}>Found Items</Text>
         <Text style={styles.subtitle}>Items found by the community</Text>
       </View>
@@ -292,6 +294,7 @@ export default function FoundItemsScreen() {
         </View>
       </Modal>
     </View>
+    </Page>
   );
 }
 
@@ -299,7 +302,7 @@ export default function FoundItemsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'transparent',
   },
   centerContainer: {
     flex: 1,
@@ -308,9 +311,6 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
   },
   title: {
     fontSize: 28,

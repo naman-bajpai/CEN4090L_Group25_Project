@@ -89,7 +89,7 @@ export default function BottomNav() {
                   <Ionicons
                     name={active ? item.icon : (`${item.icon}-outline` as any)}
                     size={active ? 24 : 22}
-                    color={active ? '#782F40' : '#9CA3AF'}
+                    color={active ? '#FFFFFF' : '#9CA3AF'}
                   />
                 </View>
               </View>
@@ -117,17 +117,17 @@ const styles = StyleSheet.create({
   },
   navBar: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255,255,255,0.95)',
     borderRadius: 24,
     paddingHorizontal: 4,
     paddingVertical: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: 'rgba(0,0,0,0.05)',
   },
   navItem: {
     flex: 1,
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   iconWrapperActive: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: 'rgba(120, 47, 64, 0.1)',
   },
   iconContainer: {
     width: 40,
@@ -157,19 +157,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   iconContainerActive: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#782F40',
     shadowColor: '#782F40',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
   },
   activeDot: {
     position: 'absolute',
-    top: 6,
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+    top: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#782F40',
   },
   label: {
@@ -185,4 +185,3 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 });
-

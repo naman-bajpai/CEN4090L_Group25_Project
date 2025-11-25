@@ -4,20 +4,21 @@ import { useAuth } from '@/lib/session';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import Page from '@/components/Page';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -146,7 +147,7 @@ export default function ItemDetailScreen() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <StatusBar style="auto" />
+        <StatusBar style="dark" />
         <ActivityIndicator size="large" color="#782F40" />
       </View>
     );
@@ -155,7 +156,7 @@ export default function ItemDetailScreen() {
   if (!item) {
     return (
       <View style={styles.centerContainer}>
-        <StatusBar style="auto" />
+        <StatusBar style="dark" />
         <Ionicons name="alert-circle" size={48} color="#ccc" />
         <Text style={styles.emptyText}>Item not found</Text>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -170,11 +171,12 @@ export default function ItemDetailScreen() {
   const canMessage = !isOwner && session && item.status === 'open';
 
   return (
+    <Page>
     <View style={styles.container}>
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
       
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButtonHeader}
           onPress={() => router.back()}
@@ -546,6 +548,7 @@ export default function ItemDetailScreen() {
           <KeyboardAvoidingView
             style={styles.modalContainer}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
           >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Send Message</Text>
@@ -597,13 +600,14 @@ export default function ItemDetailScreen() {
         </View>
       </Modal>
     </View>
+    </Page>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'transparent',
   },
   flex: {
     flex: 1,
@@ -619,14 +623,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
   backButtonHeader: {
     padding: 8,
@@ -1085,4 +1081,3 @@ const styles = StyleSheet.create({
     backgroundColor: '#D1D5DB',
   },
 });
-

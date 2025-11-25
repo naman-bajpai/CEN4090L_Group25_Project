@@ -105,8 +105,11 @@ export async function createItem(
   if (imageUri) {
     try {
       imagePath = await uploadItemImage(item.user_id, imageUri);
-    } catch (error) {
+      console.log('Image uploaded successfully:', imagePath);
+    } catch (error: any) {
       console.error('Failed to upload image:', error);
+      // Re-throw the error so the user knows the upload failed
+      throw new Error(`Failed to upload image: ${error.message || 'Unknown error'}`);
     }
   }
 

@@ -21,8 +21,7 @@ export default function LandingScreen() {
   );
 
   // If signed in, go straight to the tabs.
-// If signed in, go straight to the tabs.
-if (session) return <Redirect href="/(tabs)/home" />;
+  if (session) return <Redirect href="/(tabs)/home" />;
 
   // Otherwise show the public landing screen.
   return (

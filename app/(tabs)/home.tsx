@@ -4,6 +4,7 @@ import { useAuth } from '@/lib/session';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import Page from '@/components/Page';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -119,19 +120,20 @@ export default function HomeScreen() {
   if (loading) {
     return (
       <View style={styles.centerContainer}>
-        <StatusBar style="auto" />
+        <StatusBar style="dark" />
         <ActivityIndicator size="large" color="#782F40" />
       </View>
     );
   }
 
   return (
+    <Page>
     <View style={{ flex: 1 }}>
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
       <ScrollView
         style={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ paddingTop: insets.top, paddingBottom: insets.bottom + 80 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
       >
       <View style={styles.header}>
         <Text style={styles.title}>FSU Lost & Found</Text>
@@ -195,13 +197,14 @@ export default function HomeScreen() {
       </View>
       </ScrollView>
     </View>
+    </Page>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'transparent',
   },
   centerContainer: {
     flex: 1,
@@ -210,9 +213,6 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
   },
   title: {
     fontSize: 28,
