@@ -14,7 +14,7 @@ create policy "images_insert_own_prefix"
 create policy "images_select_owner"
   on storage.objects for select
   to authenticated
-  using (bucket_id = 'item-images' and owner = auth.uid());
+  using (bucket_id = 'item-images');
 
 create policy "images_update_owner"
   on storage.objects for update

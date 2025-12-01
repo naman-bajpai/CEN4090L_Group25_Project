@@ -13,6 +13,7 @@ export default function TabLayout() {
         <Stack.Screen name="home" />
         <Stack.Screen name="found" />
         <Stack.Screen name="lost" />
+        <Stack.Screen name="messages" />
         <Stack.Screen name="profile" />
         <Stack.Screen name="item/[id]" />
       </Stack>

@@ -1,4 +1,4 @@
-import Button from '@/components/Button';
+import Page from '@/components/Page';
 import Field from '@/components/TextField';
 import { getItemImageUrl, getItems, getProfile, updateProfile } from '@/lib/api';
 import type { Tables } from '@/lib/database.types';
@@ -7,7 +7,6 @@ import { supabase } from '@/lib/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import Page from '@/components/Page';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -23,7 +22,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type ItemWithProfile = Tables<'items'> & {
   profiles: { full_name: string | null; avatar_path: string | null } | null;
@@ -298,38 +297,97 @@ export default function ProfileScreen() {
         transparent={false}
         onRequestClose={() => setShowEditModal(false)}
       >
-        <KeyboardAvoidingView
-          style={styles.modalContainer}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Edit Profile</Text>
-            <TouchableOpacity onPress={() => setShowEditModal(false)}>
-              <Ionicons name="close" size={28} color="#1a1a1a" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            style={styles.modalContent}
-            contentContainerStyle={styles.modalContentContainer}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
+        <SafeAreaView style={styles.modalSafeArea} edges={["top", "bottom"]}>
+          <KeyboardAvoidingView
+            style={styles.modalContainer}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 20}
           >
-            <Field
-              placeholder="Full Name"
-              value={editingName}
-              onChangeText={setEditingName}
-              autoCapitalize="words"
-            />
+            {/* Modern Header */}
+            <View style={[styles.modalHeader, { paddingTop: insets.top + 24 }]}>
+              <View style={styles.modalHeaderLeft}>
+                <View style={styles.modalIconContainer}>
+                  <Ionicons name="person-circle" size={24} color="#782F40" />
+                </View>
+                <View>
+                  <Text style={styles.modalTitle}>Edit Profile</Text>
+                  <Text style={styles.modalSubtitle}>Update your information</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowEditModal(false)}
+                style={styles.modalCloseButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close-circle" size={32} color="#9CA3AF" />
+              </TouchableOpacity>
+            </View>
 
-            <Button
-              title={saving ? 'Saving...' : 'Save'}
-              onPress={handleSaveProfile}
-              disabled={saving}
-            />
-          </ScrollView>
-        </KeyboardAvoidingView>
+            <ScrollView
+              style={styles.modalContent}
+              contentContainerStyle={[styles.modalContentContainer, { paddingBottom: insets.bottom + 24 }]}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentInsetAdjustmentBehavior="automatic"
+            >
+              {/* Profile Avatar Section */}
+              <View style={styles.modalAvatarSection}>
+                <View style={styles.modalAvatarContainer}>
+                  <Ionicons name="person" size={48} color="#782F40" />
+                </View>
+                <Text style={styles.modalAvatarLabel}>Profile Picture</Text>
+                <Text style={styles.modalAvatarHint}>Coming soon</Text>
+              </View>
+
+              {/* Form Section */}
+              <View style={styles.modalFormSection}>
+                <View style={styles.modalSectionHeader}>
+                  <Ionicons name="information-circle-outline" size={18} color="#782F40" />
+                  <Text style={styles.modalSectionTitle}>Personal Information</Text>
+                </View>
+                
+                <Field
+                  label="Full Name"
+                  placeholder="Enter your full name"
+                  value={editingName}
+                  onChangeText={setEditingName}
+                  autoCapitalize="words"
+                  icon="person-outline"
+                />
+              </View>
+
+              {/* Action Buttons */}
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalSaveButton, saving && styles.modalSaveButtonDisabled]}
+                  onPress={handleSaveProfile}
+                  disabled={saving}
+                  activeOpacity={0.8}
+                >
+                  {saving ? (
+                    <>
+                      <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+                      <Text style={styles.modalSaveButtonText}>Saving...</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                      <Text style={styles.modalSaveButtonText}>Save Changes</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.modalCancelButton}
+                  onPress={() => setShowEditModal(false)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.modalCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </SafeAreaView>
       </Modal>
     </View>
     </Page>
@@ -556,27 +614,142 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F9FAFB',
+  },
+  modalSafeArea: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
+    alignItems: 'flex-start',
+    padding: 24,
+    paddingBottom: 20,
+    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
+    borderBottomColor: '#E5E7EB',
   },
-  modalContentContainer: {
-    padding: 20,
-    paddingBottom: 40,
+  modalHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  modalIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 2,
+    letterSpacing: -0.3,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  modalCloseButton: {
+    padding: 4,
   },
   modalContent: {
     flex: 1,
-    padding: 16,
+  },
+  modalContentContainer: {
+    padding: 24,
+    paddingTop: 20,
+  },
+  modalAvatarSection: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  modalAvatarContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalAvatarLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  modalAvatarHint: {
+    fontSize: 13,
+    color: '#9CA3AF',
+  },
+  modalFormSection: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  modalSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 20,
+  },
+  modalSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1F2937',
+    letterSpacing: -0.2,
+  },
+  modalActions: {
+    gap: 12,
+  },
+  modalSaveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#782F40',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: '#782F40',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  modalSaveButtonDisabled: {
+    backgroundColor: '#D1D5DB',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  modalSaveButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  modalCancelButton: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelButtonText: {
+    color: '#6B7280',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

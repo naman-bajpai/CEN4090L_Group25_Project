@@ -1,10 +1,10 @@
+import Page from '@/components/Page';
 import type { ItemWithProfile } from '@/lib/api';
 import { claimItem, getItem, getItemImageUrl, getMessages, getProfile, markMessageAsRead, sendMessage, updateItem, type Message } from '@/lib/api';
 import { useAuth } from '@/lib/session';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import Page from '@/components/Page';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -800,15 +800,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: 20,
     paddingTop: 12,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    backgroundColor: 'transparent',
     gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
   },
   actionButton: {
     flex: 1,

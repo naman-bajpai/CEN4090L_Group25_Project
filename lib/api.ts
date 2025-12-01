@@ -198,8 +198,10 @@ export async function getItemImageUrl(imagePath: string | null): Promise<string 
   if (!imagePath) return null;
   try {
     return await getSignedImageUrl(imagePath);
-  } catch (error) {
-    console.error('Failed to get image URL:', error);
+  } catch (error: any) {
+    // Silently fail - image might not exist or user might not have permission
+    // This is expected for items uploaded by other users if storage policies are restrictive
+    console.error('Failed to get image URL:', error?.message || error);
     return null;
   }
 }

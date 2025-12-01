@@ -1,4 +1,5 @@
 // app/(tabs)/lost.tsx
+import Page from '@/components/Page';
 import Field from '@/components/TextField';
 import {
   createItem,
@@ -15,8 +16,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useMemo, useState } from 'react';
-import Page from '@/components/Page';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import {
   ActivityIndicator,
   Alert,
@@ -150,7 +149,6 @@ export default function LostItemsScreen() {
   const [location, setLocation] = useState('');
   const [whenLost, setWhenLost] = useState('');
   const [showWhenLostPicker, setShowWhenLostPicker] = useState(false);
-  const [nativeDate, setNativeDate] = useState<Date | null>(null);
   const today = useMemo(() => new Date(), []);
   const [pickerYear, setPickerYear] = useState<number>(new Date().getFullYear());
   const [pickerMonth, setPickerMonth] = useState<number>(new Date().getMonth() + 1); // 1-12
@@ -253,12 +251,10 @@ export default function LostItemsScreen() {
     if (whenLost) {
       const [y, m, d] = whenLost.split('-').map((v) => parseInt(v, 10));
       if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
-        setNativeDate(new Date(y, m - 1, d));
-      } else {
-        setNativeDate(today);
+        setPickerYear(y);
+        setPickerMonth(m);
+        setPickerDay(d);
       }
-    } else {
-      setNativeDate(today);
     }
     setShowWhenLostPicker(true);
   };
@@ -852,64 +848,140 @@ export default function LostItemsScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Fast Native Date Picker */}
+      {/* Custom Fast Date Picker */}
       {showWhenLostPicker && (
-        Platform.OS === 'ios' ? (
-          <Modal
-            visible
-            animationType="slide"
-            transparent
-            onRequestClose={() => setShowWhenLostPicker(false)}
-          >
-            <View style={styles.dateModalBackdrop}>
-              <View style={styles.dateModalCard}>
-                <DateTimePicker
-                  value={nativeDate || today}
-                  mode="date"
-                  display="spinner"
-                  maximumDate={today}
-                  onChange={(event: DateTimePickerEvent, date?: Date) => {
-                    if (date) setNativeDate(date);
-                  }}
-                />
-                <View style={styles.dateActions}>
-                  <TouchableOpacity
-                    style={[styles.dateActionBtn, styles.dateCancelBtn]}
-                    onPress={() => setShowWhenLostPicker(false)}
+        <Modal
+          visible
+          animationType="slide"
+          transparent
+          onRequestClose={() => setShowWhenLostPicker(false)}
+        >
+          <View style={styles.dateModalBackdrop}>
+            <TouchableOpacity
+              style={styles.dateModalBackdropTouchable}
+              activeOpacity={1}
+              onPress={() => setShowWhenLostPicker(false)}
+            />
+            <View style={styles.dateModalCard}>
+              <View style={styles.dateModalHeader}>
+                <Text style={styles.dateModalTitle}>Select Date</Text>
+                <TouchableOpacity
+                  onPress={() => setShowWhenLostPicker(false)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="close" size={24} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.datePickerContainer}>
+                {/* Year Picker */}
+                <View style={styles.datePickerColumn}>
+                  <Text style={styles.datePickerLabel}>Year</Text>
+                  <ScrollView
+                    style={styles.datePickerScroll}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.datePickerContent}
                   >
-                    <Text style={[styles.dateActionText, styles.dateCancelText]}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.dateActionBtn, styles.dateConfirmBtn]}
-                    onPress={() => {
-                      const d = nativeDate || today;
-                      const iso = formatISODate(d.getFullYear(), d.getMonth() + 1, d.getDate());
-                      setWhenLost(iso);
-                      setShowWhenLostPicker(false);
-                    }}
+                    {Array.from({ length: 10 }, (_, i) => {
+                      const year = today.getFullYear() - i;
+                      const isSelected = pickerYear === year;
+                      return (
+                        <TouchableOpacity
+                          key={year}
+                          style={[styles.datePickerOption, isSelected && styles.datePickerOptionSelected]}
+                          onPress={() => setPickerYear(year)}
+                        >
+                          <Text style={[styles.datePickerOptionText, isSelected && styles.datePickerOptionTextSelected]}>
+                            {year}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+
+                {/* Month Picker */}
+                <View style={styles.datePickerColumn}>
+                  <Text style={styles.datePickerLabel}>Month</Text>
+                  <ScrollView
+                    style={styles.datePickerScroll}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.datePickerContent}
                   >
-                    <Text style={[styles.dateActionText, styles.dateConfirmText]}>Done</Text>
-                  </TouchableOpacity>
+                    {Array.from({ length: 12 }, (_, i) => {
+                      const month = i + 1;
+                      const isSelected = pickerMonth === month;
+                      const monthName = new Date(2000, i, 1).toLocaleDateString('en-US', { month: 'short' });
+                      return (
+                        <TouchableOpacity
+                          key={month}
+                          style={[styles.datePickerOption, isSelected && styles.datePickerOptionSelected]}
+                          onPress={() => {
+                            setPickerMonth(month);
+                            // Adjust day if it's invalid for the new month
+                            const maxDay = daysInMonth(pickerYear, month);
+                            if (pickerDay > maxDay) {
+                              setPickerDay(maxDay);
+                            }
+                          }}
+                        >
+                          <Text style={[styles.datePickerOptionText, isSelected && styles.datePickerOptionTextSelected]}>
+                            {monthName}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+
+                {/* Day Picker */}
+                <View style={styles.datePickerColumn}>
+                  <Text style={styles.datePickerLabel}>Day</Text>
+                  <ScrollView
+                    style={styles.datePickerScroll}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.datePickerContent}
+                  >
+                    {Array.from({ length: daysInMonth(pickerYear, pickerMonth) }, (_, i) => {
+                      const day = i + 1;
+                      const isSelected = pickerDay === day;
+                      return (
+                        <TouchableOpacity
+                          key={day}
+                          style={[styles.datePickerOption, isSelected && styles.datePickerOptionSelected]}
+                          onPress={() => setPickerDay(day)}
+                        >
+                          <Text style={[styles.datePickerOptionText, isSelected && styles.datePickerOptionTextSelected]}>
+                            {day}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
                 </View>
               </View>
+
+              <View style={styles.dateActions}>
+                <TouchableOpacity
+                  style={[styles.dateActionBtn, styles.dateCancelBtn]}
+                  onPress={() => setShowWhenLostPicker(false)}
+                >
+                  <Text style={[styles.dateActionText, styles.dateCancelText]}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.dateActionBtn, styles.dateConfirmBtn]}
+                  onPress={() => {
+                    const iso = formatISODate(pickerYear, pickerMonth, pickerDay);
+                    setWhenLost(iso);
+                    setShowWhenLostPicker(false);
+                  }}
+                >
+                  <Text style={[styles.dateActionText, styles.dateConfirmText]}>Done</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </Modal>
-        ) : (
-          <DateTimePicker
-            value={nativeDate || today}
-            mode="date"
-            display="default"
-            maximumDate={today}
-            onChange={(event: DateTimePickerEvent, date?: Date) => {
-              // Android sends 'dismissed' or 'set' in event.type
-              if (event.type === 'set' && date) {
-                const iso = formatISODate(date.getFullYear(), date.getMonth() + 1, date.getDate());
-                setWhenLost(iso);
-              }
-              setShowWhenLostPicker(false);
-            }}
-          />
-        )
+          </View>
+        </Modal>
       )}
     </View>
     </Page>
@@ -1217,16 +1289,74 @@ const styles = StyleSheet.create({
   },
   dateModalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+    backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'flex-end',
+  },
+  dateModalBackdropTouchable: {
+    flex: 1,
   },
   dateModalCard: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    maxHeight: '70%',
+  },
+  dateModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  dateModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  datePickerContainer: {
+    flexDirection: 'row',
+    height: 200,
+    marginBottom: 20,
+    gap: 12,
+  },
+  datePickerColumn: {
+    flex: 1,
+  },
+  datePickerLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 8,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  datePickerScroll: {
+    flex: 1,
+  },
+  datePickerContent: {
+    paddingVertical: 60,
+  },
+  datePickerOption: {
     paddingVertical: 12,
-    paddingHorizontal: 16,
-    paddingBottom: 20,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginBottom: 4,
+    alignItems: 'center',
+  },
+  datePickerOptionSelected: {
+    backgroundColor: '#782F40',
+  },
+  datePickerOptionText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  datePickerOptionTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   dateActions: {
     marginTop: 12,

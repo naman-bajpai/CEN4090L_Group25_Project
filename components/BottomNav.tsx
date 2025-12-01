@@ -31,6 +31,12 @@ const navItems: NavItem[] = [
     route: '/(tabs)/lost',
   },
   {
+    name: 'messages',
+    label: 'Messages',
+    icon: 'chatbubble-ellipses',
+    route: '/(tabs)/messages',
+  },
+  {
     name: 'profile',
     label: 'Profile',
     icon: 'person',
@@ -173,15 +179,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#782F40',
   },
   label: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '600',
     color: '#9CA3AF',
     marginTop: 1,
-    letterSpacing: 0.2,
+    letterSpacing: 0.1,
   },
   labelActive: {
     color: '#782F40',
     fontWeight: '700',
-    fontSize: 11,
+    fontSize: 10,
   },
 });
