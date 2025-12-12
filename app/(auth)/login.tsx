@@ -15,6 +15,7 @@ import {
   View,
 } from 'react-native';
 
+// Assuming these components exist based on your provided code
 import Button from '@/components/Button';
 import Screen from '@/components/Screen';
 import Field from '@/components/TextField';
@@ -29,20 +30,9 @@ export default function LoginScreen() {
   const passRef = useRef<TextInput>(null);
   const router = useRouter();
 
-  const validateEmail = (email: string) => {
-    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return re.test(email);
-  };
-
   async function onSubmit() {
-    if (!email.trim()) {
-      return Alert.alert('Missing Info', 'Please enter your email address.');
-    }
-    if (!validateEmail(email.trim())) {
-      return Alert.alert('Invalid Email', 'Please enter a valid email address.');
-    }
-    if (!password) {
-      return Alert.alert('Missing Info', 'Please enter your password.');
+    if (!email.trim() || !password) {
+      return Alert.alert('Missing Info', 'Please enter both email and password.');
     }
 
     setSubmitting(true);
@@ -53,18 +43,14 @@ export default function LoginScreen() {
       });
 
       if (error) {
-        let errorMessage = error.message;
-        if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-        } else if (error.message.includes('Email not confirmed')) {
-          errorMessage = 'Please verify your email address before signing in.';
-        }
-        return Alert.alert('Sign In Failed', errorMessage);
+        Alert.alert('Sign In Failed', error.message);
+      } else {
+        // Usually, your root _layout.tsx will listen to auth state and redirect,
+        // but we can manually replace just in case.
+        router.replace('/(tabs)'); 
       }
-
-      router.replace('/(tabs)/home');
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'An unexpected error occurred. Please try again.');
+      Alert.alert('Error', 'An unexpected error occurred.');
     } finally {
       setSubmitting(false);
     }
@@ -72,8 +58,8 @@ export default function LoginScreen() {
 
   return (
     <Screen noPadding unsafe>
-      <LinearGradient colors={["#F8FAFC", "#EEF2FF"]} style={styles.gradient}>
-        {/* Soft background accents */}
+      <LinearGradient colors={['#F8FAFC', '#EEF2FF']} style={styles.gradient}>
+        {/* Background Accents */}
         <LinearGradient
           colors={["#FEE2E2", "transparent"]}
           style={styles.accentBlobTop}
@@ -87,98 +73,107 @@ export default function LoginScreen() {
           end={{ x: 1, y: 1 }}
         />
 
-        <View style={[styles.safeContent, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.container}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
+        <View style={[styles.safeContent, { paddingTop: insets.top, paddingBottom: insets.bottom }]}> 
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.container}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
           >
-            <View style={styles.card}>
-              <View style={styles.header}>
-                <View style={styles.logoBadge}>
-                  <LinearGradient
-                    colors={["#782F40", "#9A3D52"]}
-                    style={styles.logoInner}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                  >
-                    <Ionicons name="lock-closed" size={24} color="#fff" />
-                  </LinearGradient>
-                </View>
-                <Text style={styles.title}>Welcome back</Text>
-                <Text style={styles.subtitle}>Sign in to FSU Lost & Found</Text>
-              </View>
-
-              <View style={styles.form}>
-                <Field
-                  label="Email"
-                  icon="mail-outline"
-                  placeholder="you@fsu.edu"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  value={email}
-                  onChangeText={setEmail}
-                  returnKeyType="next"
-                  onSubmitEditing={() => passRef.current?.focus()}
-                />
-
-                <Field
-                  ref={passRef}
-                  label="Password"
-                  icon="lock-closed-outline"
-                  placeholder="Enter your password"
-                  secureTextEntry={!showPassword}
-                  value={password}
-                  onChangeText={setPassword}
-                  returnKeyType="done"
-                  onSubmitEditing={onSubmit}
-                  rightAccessory={
-                    <TouchableOpacity
-                      onPress={() => setShowPassword(!showPassword)}
-                      accessibilityRole="button"
-                      accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.content}>
+                {/* Header Section */}
+                <View style={styles.header}>
+                  <View style={styles.logoBadge}>
+                    <LinearGradient
+                      colors={["#782F40", "#9A3D52"]}
+                      style={styles.logoInner}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
                     >
-                      <Ionicons
-                        name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                        size={22}
-                        color="#6B7280"
-                      />
-                    </TouchableOpacity>
-                  }
-                />
+                      <Ionicons name="log-in" size={24} color="#fff" style={{ marginLeft: 2 }} />
+                    </LinearGradient>
+                  </View>
+                  <Text style={styles.title}>Welcome Back</Text>
+                  <Text style={styles.subtitle}>Sign in to continue</Text>
+                </View>
 
-                <TouchableOpacity
-                  style={styles.forgotPassword}
-                  onPress={() => router.push('/(auth)/reset')}
-                >
-                  <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-                </TouchableOpacity>
+                {/* Form Section */}
+                <View style={styles.form}>
+                  <Field
+                    label="Email Address"
+                    icon="mail-outline"
+                    placeholder="Enter your email"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    value={email}
+                    onChangeText={setEmail}
+                    returnKeyType="next"
+                    onSubmitEditing={() => passRef.current?.focus()}
+                  />
 
-                <Button
-                  title={submitting ? 'Signing in...' : 'Sign In'}
-                  onPress={onSubmit}
-                  disabled={submitting}
-                />
+                  <Field
+                    ref={passRef}
+                    label="Password"
+                    icon="lock-closed-outline"
+                    placeholder="Enter your password"
+                    secureTextEntry={!showPassword}
+                    value={password}
+                    onChangeText={setPassword}
+                    returnKeyType="go"
+                    onSubmitEditing={onSubmit}
+                    rightAccessory={
+                      <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Ionicons
+                          name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                          size={22}
+                          color="#6B7280"
+                        />
+                      </TouchableOpacity>
+                    }
+                  />
 
-                <View style={styles.signupContainer}>
-                  <Text style={styles.signupText}>Don’t have an account?</Text>
-                  <Link href="/(auth)/signup" asChild>
-                    <TouchableOpacity>
-                      <Text style={styles.signupLink}>Create one</Text>
-                    </TouchableOpacity>
-                  </Link>
+                  {/* Forgot Password Link */}
+                  <View style={styles.forgotContainer}>
+                    <Link href="/(auth)/forgot-password" asChild>
+                        <TouchableOpacity>
+                        <Text style={styles.forgotText}>Forgot Password?</Text>
+                        </TouchableOpacity>
+                    </Link>
+                  </View>
+
+                  <Button
+                    title={submitting ? 'Signing In...' : 'Sign In'}
+                    onPress={onSubmit}
+                    disabled={submitting}
+                  />
+
+                  <View style={styles.divider}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>OR</Text>
+                    <View style={styles.dividerLine} />
+                  </View>
+
+                  {/* Toggle to Signup */}
+                  <View style={styles.footerContainer}>
+                    <Text style={styles.footerText}>Don't have an account? </Text>
+                    <Link href="/(auth)/signup" asChild>
+                      <TouchableOpacity>
+                        <Text style={styles.footerLink}>Sign Up</Text>
+                      </TouchableOpacity>
+                    </Link>
+                  </View>
                 </View>
               </View>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </View>
       </LinearGradient>
     </Screen>
@@ -198,17 +193,17 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     padding: 0,
-    justifyContent: 'flex-start',
+    justifyContent: 'center', // Centered vertically for login looks better
+    minHeight: '100%',
   },
-  card: {
-    // Full-bleed background, with inner gutter to avoid edge hugging
+  content: {
     width: '100%',
     paddingHorizontal: 20,
     paddingVertical: 24,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: 32,
   },
   logoBadge: {
     width: 64,
@@ -242,29 +237,44 @@ const styles = StyleSheet.create({
   form: {
     width: '100%',
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 20,
+  forgotContainer: {
+    alignItems: 'flex-end',
+    marginBottom: 24,
     marginTop: -4,
   },
-  forgotPasswordText: {
+  forgotText: {
     fontSize: 14,
-    color: '#782F40',
+    color: '#782F40', // Garnet
     fontWeight: '600',
   },
-  signupContainer: {
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E5E7EB',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
+  footerContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 8,
   },
-  signupText: {
-    fontSize: 14,
+  footerText: {
+    fontSize: 15,
     color: '#6B7280',
-    marginRight: 6,
   },
-  signupLink: {
-    fontSize: 14,
+  footerLink: {
+    fontSize: 15,
     color: '#782F40',
     fontWeight: '700',
   },
