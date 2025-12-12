@@ -28,6 +28,8 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Refs for smooth keyboard navigation
   const emailRef = useRef<TextInput>(null);
   const passRef = useRef<TextInput>(null);
   const router = useRouter();
@@ -64,7 +66,7 @@ export default function SignupScreen() {
 
       if (error) {
         let errorMessage = error.message;
-        if (error.message.includes('already registered')) {
+        if (error.message.includes('already registered') || error.message.includes('unique constraint')) {
           errorMessage = 'This email is already registered. Please sign in instead.';
         } else if (error.message.includes('invalid')) {
           errorMessage = 'Please enter a valid email address.';
@@ -89,7 +91,6 @@ export default function SignupScreen() {
               await createProfile(data.user.id, name.trim());
             } catch (retryError) {
               console.error('Failed to create profile on retry:', retryError);
-              // Continue even if profile creation fails - user can create it later in profile screen
             }
           }
         }
@@ -115,6 +116,7 @@ export default function SignupScreen() {
   return (
     <Screen noPadding unsafe>
       <LinearGradient colors={['#F8FAFC', '#EEF2FF']} style={styles.gradient}>
+        {/* Background Accents */}
         <LinearGradient
           colors={["#FEE2E2", "transparent"]}
           style={styles.accentBlobTop}
@@ -127,116 +129,121 @@ export default function SignupScreen() {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         />
+        
         <View style={[styles.safeContent, { paddingTop: insets.top, paddingBottom: insets.bottom }]}> 
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.container}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.container}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
           >
-            <View style={styles.content}>
-            <View style={styles.header}>
-              <View style={styles.logoBadge}>
-                <LinearGradient
-                  colors={["#782F40", "#9A3D52"]}
-                  style={styles.logoInner}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <Ionicons name="person-add" size={24} color="#fff" />
-                </LinearGradient>
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={styles.content}>
+                {/* Header */}
+                <View style={styles.header}>
+                  <View style={styles.logoBadge}>
+                    <LinearGradient
+                      colors={["#782F40", "#9A3D52"]}
+                      style={styles.logoInner}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    >
+                      <Ionicons name="person-add" size={24} color="#fff" style={{ marginLeft: 2 }} />
+                    </LinearGradient>
+                  </View>
+                  <Text style={styles.title}>Create Account</Text>
+                  <Text style={styles.subtitle}>Join FSU Lost & Found</Text>
+                </View>
+
+                {/* Form */}
+                <View style={styles.form}>
+                  <Field
+                    label="Full Name"
+                    icon="person-outline"
+                    placeholder="Enter your full name"
+                    autoCapitalize="words"
+                    value={name}
+                    onChangeText={setName}
+                    returnKeyType="next"
+                    onSubmitEditing={() => emailRef.current?.focus()}
+                  />
+
+                  <Field
+                    ref={emailRef}
+                    label="Email Address"
+                    icon="mail-outline"
+                    placeholder="Enter your email"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    value={email}
+                    onChangeText={setEmail}
+                    returnKeyType="next"
+                    onSubmitEditing={() => passRef.current?.focus()}
+                  />
+
+                  <Field
+                    ref={passRef}
+                    label="Password"
+                    icon="lock-closed-outline"
+                    placeholder="Create a password (min. 6 chars)"
+                    secureTextEntry={!showPassword}
+                    value={password}
+                    onChangeText={setPassword}
+                    returnKeyType="done"
+                    onSubmitEditing={onSubmit}
+                    rightAccessory={
+                      <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityRole="button"
+                        accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        <Ionicons
+                          name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                          size={22}
+                          color="#6B7280"
+                        />
+                      </TouchableOpacity>
+                    }
+                  />
+
+                  {/* Password Hint */}
+                  <View style={styles.passwordHint}>
+                    <Ionicons name="information-circle-outline" size={16} color="#6B7280" />
+                    <Text style={styles.passwordHintText}>
+                      Password must be at least 6 characters long
+                    </Text>
+                  </View>
+
+                  <Button
+                    title={submitting ? 'Creating Account...' : 'Create Account'}
+                    onPress={onSubmit}
+                    disabled={submitting}
+                  />
+
+                  <View style={styles.divider}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>OR</Text>
+                    <View style={styles.dividerLine} />
+                  </View>
+
+                  {/* Toggle to Login */}
+                  <View style={styles.footerContainer}>
+                    <Text style={styles.footerText}>Already have an account? </Text>
+                    <Link href="/(auth)/login" asChild>
+                      <TouchableOpacity>
+                        <Text style={styles.footerLink}>Sign In</Text>
+                      </TouchableOpacity>
+                    </Link>
+                  </View>
+                </View>
               </View>
-              <Text style={styles.title}>Create your account</Text>
-              <Text style={styles.subtitle}>Join FSU Lost & Found</Text>
-            </View>
-
-            <View style={styles.form}>
-              <Field
-                label="Full Name"
-                icon="person-outline"
-                placeholder="Enter your full name"
-                autoCapitalize="words"
-                value={name}
-                onChangeText={setName}
-                returnKeyType="next"
-                onSubmitEditing={() => emailRef.current?.focus()}
-              />
-
-              <Field
-                ref={emailRef}
-                label="Email Address"
-                icon="mail-outline"
-                placeholder="Enter your email"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                value={email}
-                onChangeText={setEmail}
-                returnKeyType="next"
-                onSubmitEditing={() => passRef.current?.focus()}
-              />
-
-              <Field
-                ref={passRef}
-                label="Password"
-                icon="lock-closed-outline"
-                placeholder="Create a password (min. 6 characters)"
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPassword}
-                returnKeyType="done"
-                onSubmitEditing={onSubmit}
-                rightAccessory={
-                  <TouchableOpacity
-                    onPress={() => setShowPassword(!showPassword)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    accessibilityRole="button"
-                    accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    <Ionicons
-                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={22}
-                      color="#6B7280"
-                    />
-                  </TouchableOpacity>
-                }
-              />
-
-              <View style={styles.passwordHint}>
-                <Ionicons name="information-circle-outline" size={16} color="#6B7280" />
-                <Text style={styles.passwordHintText}>
-                  Password must be at least 6 characters long
-                </Text>
-              </View>
-
-              <Button
-                title={submitting ? 'Creating Account...' : 'Create Account'}
-                onPress={onSubmit}
-                disabled={submitting}
-              />
-
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>OR</Text>
-                <View style={styles.dividerLine} />
-              </View>
-
-              <View style={styles.loginContainer}>
-                <Text style={styles.loginText}>Already have an account? </Text>
-                <Link href="/(auth)/login" asChild>
-                  <TouchableOpacity>
-                    <Text style={styles.loginLink}>Sign In</Text>
-                  </TouchableOpacity>
-                </Link>
-              </View>
-            </View>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+            </ScrollView>
+          </KeyboardAvoidingView>
         </View>
       </LinearGradient>
     </Screen>
@@ -327,17 +334,17 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontWeight: '500',
   },
-  loginContainer: {
+  footerContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
   },
-  loginText: {
+  footerText: {
     fontSize: 15,
     color: '#6B7280',
   },
-  loginLink: {
+  footerLink: {
     fontSize: 15,
     color: '#782F40',
     fontWeight: '700',
