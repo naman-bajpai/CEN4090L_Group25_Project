@@ -2,7 +2,6 @@ import Page from '@/components/Page';
 import {
   getConversations,
   getMessages,
-  markMessageAsRead,
   sendMessage,
 } from '@/lib/api';
 import { useAuth } from '@/lib/session';
@@ -111,6 +110,7 @@ export default function MessagesScreen() {
       setMessages(msgs);
 
       // Mark messages as read
+      const { markMessageAsRead } = await import('@/lib/api');
       const unreadMessages = msgs.filter(
         (m: Message) => !m.read && m.receiver_id === session.user.id
       );
@@ -123,7 +123,8 @@ export default function MessagesScreen() {
         }
       }
 
-      loadConversations(); // Refresh to update unread count
+      // Refresh conversations to update unread count
+      loadConversations();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to load messages');
     } finally {
@@ -151,7 +152,9 @@ export default function MessagesScreen() {
         session.user.id
       );
       setMessages(msgs);
-      loadConversations(); // Refresh conversations
+      
+      // Refresh conversations to update the conversation list
+      loadConversations();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to send message');
     } finally {
@@ -284,14 +287,6 @@ export default function MessagesScreen() {
                     {conversation.last_message.message}
                   </Text>
                 </View>
-
-                {conversation.unread_count > 0 && (
-                  <View style={styles.unreadBadge}>
-                    <Text style={styles.unreadBadgeText}>
-                      {conversation.unread_count}
-                    </Text>
-                  </View>
-                )}
               </TouchableOpacity>
             ))
           )}
@@ -373,11 +368,16 @@ export default function MessagesScreen() {
                 </Text>
               </View>
             ) : (
-              <>
+              <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={styles.messagesKeyboardView}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+              >
                 <ScrollView
                   style={styles.messagesList}
                   contentContainerStyle={styles.messagesListContent}
                   keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={true}
                 >
                   {messages.map((message) => {
                     if (!session) return null;
@@ -432,24 +432,24 @@ export default function MessagesScreen() {
                   })}
                 </ScrollView>
 
-                <KeyboardAvoidingView
-                  behavior={
-                    Platform.OS === 'ios' ? 'padding' : 'height'
-                  }
+                <View
                   style={[
                     styles.messagesInputContainer,
-                    { paddingBottom: insets.bottom || 12 },
+                    { paddingBottom: Math.max(insets.bottom, 12) },
                   ]}
                 >
-                  <TextInput
-                    style={styles.messagesInput}
-                    placeholder="Type a message..."
-                    placeholderTextColor="#9CA3AF"
-                    value={messageText}
-                    onChangeText={setMessageText}
-                    multiline
-                    maxLength={500}
-                  />
+                  <View style={styles.messagesInputWrapper}>
+                    <TextInput
+                      style={styles.messagesInput}
+                      placeholder="Type a message..."
+                      placeholderTextColor="#9CA3AF"
+                      value={messageText}
+                      onChangeText={setMessageText}
+                      multiline
+                      maxLength={500}
+                      textAlignVertical="center"
+                    />
+                  </View>
                   <TouchableOpacity
                     style={[
                       styles.messagesSendButton,
@@ -465,8 +465,8 @@ export default function MessagesScreen() {
                       <Ionicons name="send" size={20} color="#fff" />
                     )}
                   </TouchableOpacity>
-                </KeyboardAvoidingView>
-              </>
+                </View>
+              </KeyboardAvoidingView>
             )}
           </View>
         </Modal>
@@ -557,20 +557,6 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     lineHeight: 20,
   },
-  unreadBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#782F40',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  unreadBadgeText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '700',
-  },
   emptyState: {
     alignItems: 'center',
     padding: 40,
@@ -650,6 +636,9 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginTop: 16,
   },
+  messagesKeyboardView: {
+    flex: 1,
+  },
   messagesList: {
     flex: 1,
   },
@@ -711,17 +700,24 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     alignItems: 'flex-end',
+    minHeight: 60,
+    maxHeight: 120,
+  },
+  messagesInputWrapper: {
+    flex: 1,
+    marginRight: 8,
+    minWidth: 0,
   },
   messagesInput: {
-    flex: 1,
     backgroundColor: '#F3F4F6',
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 10,
+    minHeight: 40,
     maxHeight: 100,
     fontSize: 15,
     color: '#1F2937',
-    marginRight: 8,
+    width: '100%',
   },
   messagesSendButton: {
     width: 44,
@@ -730,6 +726,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#782F40',
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
   },
   messagesSendButtonDisabled: {
     backgroundColor: '#D1D5DB',

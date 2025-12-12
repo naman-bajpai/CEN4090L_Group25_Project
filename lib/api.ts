@@ -155,42 +155,20 @@ export async function deleteItem(itemId: string) {
   if (error) throw error;
 }
 
-// Notifications API
+// Notifications API - DISABLED
 export async function getNotifications(userId: string, unreadOnly = false) {
-  let query = supabase
-    .from('notifications')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
-
-  if (unreadOnly) {
-    query = query.eq('read', false);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return data;
+  // Notifications feature disabled
+  return [];
 }
 
 export async function markNotificationAsRead(notificationId: number) {
-  const { data, error } = await supabase
-    .from('notifications')
-    .update({ read: true })
-    .eq('id', notificationId)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  // Notifications feature disabled
+  return null;
 }
 
 export async function createNotification(userId: string, message: string) {
-  const { data, error } = await supabase
-    .from('notifications')
-    .insert({ user_id: userId, message })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  // Notifications feature disabled - no-op
+  return null;
 }
 
 // Helper function to get image URL
@@ -386,15 +364,7 @@ export async function sendMessage(
 
   if (error) throw error;
 
-  // Create notification for receiver
-  try {
-    await createNotification(
-      receiverId,
-      `You received a new message about an item`
-    );
-  } catch (notifError) {
-    console.error('Failed to create notification:', notifError);
-  }
+  // Notifications feature disabled
 
   return data;
 }
@@ -463,20 +433,29 @@ export async function getConversations(userId: string) {
     const key = `${message.item_id}_${otherUserId}`;
 
     if (!conversationMap.has(key)) {
+      // Initialize conversation with the first message encountered (newest due to DESC order)
+      // Count this message if it's unread
+      const initialUnreadCount = (!message.read && message.receiver_id === userId) ? 1 : 0;
       conversationMap.set(key, {
         item_id: message.item_id,
         item: message.items,
         other_user_id: otherUserId,
         last_message: message,
-        unread_count: 0,
+        unread_count: initialUnreadCount,
       });
       userIds.add(otherUserId);
     } else {
       const conv = conversationMap.get(key);
+      // Update last_message if this message is newer
       if (message.created_at && conv.last_message.created_at && 
           new Date(message.created_at) > new Date(conv.last_message.created_at)) {
+        // If the old last_message was unread and we're replacing it, we need to adjust
+        // But since we're counting all unread messages, we just update last_message
+        // and continue counting unread messages below
         conv.last_message = message;
       }
+      // Count ALL unread messages (not just the newest one)
+      // This ensures older unread messages are counted even if newest is read
       if (!message.read && message.receiver_id === userId) {
         conv.unread_count++;
       }

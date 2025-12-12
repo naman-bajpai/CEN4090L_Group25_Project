@@ -1,22 +1,31 @@
-import { claimItem, createNotification, getItemImageUrl, getItems } from '@/lib/api';
+import Page from '@/components/Page';
+import Field from '@/components/TextField';
+import {
+  claimItem,
+  createItem,
+  getItemImageUrl,
+  getItems,
+} from '@/lib/api';
 import type { Tables } from '@/lib/database.types';
 import { useAuth } from '@/lib/session';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import Page from '@/components/Page';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -114,6 +123,21 @@ export default function FoundItemsScreen() {
   const [selectedItem, setSelectedItem] = useState<ItemWithProfile | null>(null);
   const [claimModalVisible, setClaimModalVisible] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Form state
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [color, setColor] = useState('');
+  const [location, setLocation] = useState('');
+  const [whenFound, setWhenFound] = useState('');
+  const [showWhenFoundPicker, setShowWhenFoundPicker] = useState(false);
+  const today = useMemo(() => new Date(), []);
+  const [pickerYear, setPickerYear] = useState<number>(new Date().getFullYear());
+  const [pickerMonth, setPickerMonth] = useState<number>(new Date().getMonth() + 1);
+  const [pickerDay, setPickerDay] = useState<number>(new Date().getDate());
+  const [imageUri, setImageUri] = useState<string | null>(null);
 
   const loadItems = async () => {
     try {
@@ -147,10 +171,7 @@ export default function FoundItemsScreen() {
     setClaiming(true);
     try {
       await claimItem(selectedItem.id);
-      await createNotification(
-        selectedItem.user_id,
-        `Your found item "${selectedItem.title}" has been claimed!`
-      );
+      // Notifications feature disabled
       Alert.alert('Success', 'Item claimed successfully!');
       setClaimModalVisible(false);
       setSelectedItem(null);
@@ -159,6 +180,115 @@ export default function FoundItemsScreen() {
       Alert.alert('Error', error.message || 'Failed to claim item');
     } finally {
       setClaiming(false);
+    }
+  };
+
+  // Image picker functions
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'We need camera roll permissions to upload images');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'We need camera permissions to take photos');
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const showImagePicker = () => {
+    Alert.alert('Add Photo', 'Choose an option', [
+      { text: 'Camera', onPress: takePhoto },
+      { text: 'Photo Library', onPress: pickImage },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const resetForm = () => {
+    setTitle('');
+    setDescription('');
+    setColor('');
+    setLocation('');
+    setWhenFound('');
+    setImageUri(null);
+    setShowForm(false);
+  };
+
+  // Date picker helpers
+  const pad2 = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+  const daysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
+  const formatISODate = (y: number, m: number, d: number) => `${y}-${pad2(m)}-${pad2(d)}`;
+
+  const openWhenFoundPicker = () => {
+    if (whenFound) {
+      const [y, m, d] = whenFound.split('-').map((v) => parseInt(v, 10));
+      if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+        setPickerYear(y);
+        setPickerMonth(m);
+        setPickerDay(d);
+      }
+    }
+    setShowWhenFoundPicker(true);
+  };
+
+  const handleSubmit = async () => {
+    if (!session) {
+      Alert.alert('Error', 'You must be logged in to post a found item');
+      return;
+    }
+
+    if (!title.trim()) {
+      Alert.alert('Missing Info', 'Please enter a title for the found item');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await createItem(
+        {
+          user_id: session.user.id,
+          type: 'found',
+          title: title.trim(),
+          description: description.trim() || null,
+          color: color.trim() || null,
+          location: location.trim() || null,
+          when_lost: whenFound ? new Date(whenFound).toISOString() : null,
+          status: 'open',
+        },
+        imageUri || undefined
+      );
+      Alert.alert('Success', 'Found item posted successfully!');
+      resetForm();
+      loadItems();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to post found item');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -179,6 +309,15 @@ export default function FoundItemsScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Found Items</Text>
         <Text style={styles.subtitle}>Items found by the community</Text>
+        {session && (
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setShowForm(true)}
+          >
+            <Ionicons name="add-circle" size={24} color="#fff" />
+            <Text style={styles.addButtonText}>Post Found Item</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.filterContainer}>
@@ -293,6 +432,355 @@ export default function FoundItemsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Post Found Item Form Modal */}
+      <Modal
+        visible={showForm}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={resetForm}
+      >
+        <KeyboardAvoidingView
+          style={styles.formModalContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+        >
+          <View style={[styles.formModalHeader, { paddingTop: insets.top + 16 }]}>
+            <View style={styles.formModalHeaderContent}>
+              <View style={styles.formModalTitleContainer}>
+                <Ionicons name="checkmark-circle" size={28} color="#10B981" />
+                <Text style={styles.formModalTitle}>Post Found Item</Text>
+              </View>
+              <TouchableOpacity
+                onPress={resetForm}
+                style={styles.formCloseButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close-circle" size={32} color="#666" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.formModalSubtitle}>
+              Help reunite items with their owners
+            </Text>
+          </View>
+
+          <ScrollView
+            style={styles.formModalContent}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.formModalContentContainer}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Image Section */}
+            <View style={styles.formSection}>
+              <View style={styles.formSectionTitleContainer}>
+                <Ionicons name="image" size={18} color="#10B981" />
+                <Text style={styles.formSectionTitle}>Photo</Text>
+              </View>
+              <Text style={styles.formSectionSubtitle}>
+                Add a photo to help identify the item
+              </Text>
+
+              {imageUri ? (
+                <View style={styles.imagePreviewContainer}>
+                  <Image source={{ uri: imageUri }} style={styles.previewImage} />
+                  <View style={styles.imageActions}>
+                    <TouchableOpacity
+                      style={styles.imageActionButton}
+                      onPress={showImagePicker}
+                    >
+                      <Ionicons name="camera" size={18} color="#10B981" />
+                      <Text style={styles.imageActionText}>Change</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.imageActionButton, styles.removeButton]}
+                      onPress={() => setImageUri(null)}
+                    >
+                      <Ionicons name="trash" size={18} color="#EF4444" />
+                      <Text style={[styles.imageActionText, styles.removeButtonText]}>
+                        Remove
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={styles.imagePickerButton}
+                  onPress={showImagePicker}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.imagePickerIconContainer}>
+                    <Ionicons name="camera-outline" size={32} color="#10B981" />
+                  </View>
+                  <Text style={styles.imagePickerText}>Add Photo</Text>
+                  <Text style={styles.imagePickerSubtext}>
+                    Optional - Tap to add from camera or gallery
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Basic Information */}
+            <View style={styles.formSection}>
+              <View style={styles.formSectionTitleContainer}>
+                <Ionicons name="information-circle" size={18} color="#10B981" />
+                <Text style={styles.formSectionTitle}>Basic Information</Text>
+              </View>
+
+              <Field
+                label="Item Title"
+                placeholder="e.g., Black Wallet, iPhone 13"
+                value={title}
+                onChangeText={setTitle}
+                autoCapitalize="words"
+                icon="pricetag"
+              />
+
+              <Field
+                label="Description"
+                placeholder="Describe the item you found..."
+                value={description}
+                onChangeText={setDescription}
+                multiline
+                numberOfLines={4}
+                style={styles.textArea}
+                icon="text"
+              />
+            </View>
+
+            {/* Additional Details */}
+            <View style={styles.formSection}>
+              <View style={styles.formSectionTitleContainer}>
+                <Ionicons name="list" size={18} color="#10B981" />
+                <Text style={styles.formSectionTitle}>Additional Details</Text>
+              </View>
+              <Text style={styles.formSectionSubtitle}>
+                These details help owners identify their item
+              </Text>
+
+              <Field
+                label="Color"
+                placeholder="e.g., Red, Blue, Black"
+                value={color}
+                onChangeText={setColor}
+                icon="color-palette"
+              />
+
+              <Field
+                label="Location Found"
+                placeholder="Where did you find it?"
+                value={location}
+                onChangeText={setLocation}
+                icon="location"
+              />
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={openWhenFoundPicker}
+              >
+                <Field
+                  label="When Found"
+                  placeholder="Select date"
+                  value={whenFound ? new Date(whenFound).toLocaleDateString() : ''}
+                  editable={false}
+                  icon="calendar"
+                  rightAccessory={
+                    <Ionicons name="chevron-down" size={18} color="#6B7280" />
+                  }
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Submit Button */}
+            <View style={styles.submitContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.submitButton,
+                  (submitting || !title.trim()) && styles.submitButtonDisabled,
+                ]}
+                onPress={handleSubmit}
+                disabled={submitting || !title.trim()}
+                activeOpacity={0.8}
+              >
+                {submitting ? (
+                  <>
+                    <ActivityIndicator size="small" color="#fff" style={styles.submitLoader} />
+                    <Text style={styles.submitButtonText}>Posting...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                    <Text style={styles.submitButtonText}>Post Found Item</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+              <Text style={styles.requiredNote}>
+                * Required fields must be filled
+              </Text>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* Date Picker Modal */}
+      {showWhenFoundPicker && (
+        <Modal
+          visible
+          animationType="slide"
+          transparent
+          onRequestClose={() => setShowWhenFoundPicker(false)}
+        >
+          <View style={styles.dateModalBackdrop}>
+            <TouchableOpacity
+              style={styles.dateModalBackdropTouchable}
+              activeOpacity={1}
+              onPress={() => setShowWhenFoundPicker(false)}
+            />
+            <View style={styles.dateModalCard}>
+              <View style={styles.dateModalHeader}>
+                <Text style={styles.dateModalTitle}>Select Date Found</Text>
+                <TouchableOpacity
+                  onPress={() => setShowWhenFoundPicker(false)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="close" size={24} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.datePickerContainer}>
+                {/* Year Picker */}
+                <View style={styles.datePickerColumn}>
+                  <Text style={styles.datePickerLabel}>Year</Text>
+                  <ScrollView
+                    style={styles.datePickerScroll}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.datePickerContent}
+                  >
+                    {Array.from({ length: 10 }, (_, i) => {
+                      const year = today.getFullYear() - i;
+                      const isSelected = pickerYear === year;
+                      return (
+                        <TouchableOpacity
+                          key={year}
+                          style={[
+                            styles.datePickerOption,
+                            isSelected && styles.datePickerOptionSelected,
+                          ]}
+                          onPress={() => setPickerYear(year)}
+                        >
+                          <Text
+                            style={[
+                              styles.datePickerOptionText,
+                              isSelected && styles.datePickerOptionTextSelected,
+                            ]}
+                          >
+                            {year}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+
+                {/* Month Picker */}
+                <View style={styles.datePickerColumn}>
+                  <Text style={styles.datePickerLabel}>Month</Text>
+                  <ScrollView
+                    style={styles.datePickerScroll}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.datePickerContent}
+                  >
+                    {Array.from({ length: 12 }, (_, i) => {
+                      const month = i + 1;
+                      const isSelected = pickerMonth === month;
+                      const monthName = new Date(2000, i, 1).toLocaleDateString('en-US', {
+                        month: 'short',
+                      });
+                      return (
+                        <TouchableOpacity
+                          key={month}
+                          style={[
+                            styles.datePickerOption,
+                            isSelected && styles.datePickerOptionSelected,
+                          ]}
+                          onPress={() => {
+                            setPickerMonth(month);
+                            const maxDay = daysInMonth(pickerYear, month);
+                            if (pickerDay > maxDay) {
+                              setPickerDay(maxDay);
+                            }
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.datePickerOptionText,
+                              isSelected && styles.datePickerOptionTextSelected,
+                            ]}
+                          >
+                            {monthName}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+
+                {/* Day Picker */}
+                <View style={styles.datePickerColumn}>
+                  <Text style={styles.datePickerLabel}>Day</Text>
+                  <ScrollView
+                    style={styles.datePickerScroll}
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={styles.datePickerContent}
+                  >
+                    {Array.from({ length: daysInMonth(pickerYear, pickerMonth) }, (_, i) => {
+                      const day = i + 1;
+                      const isSelected = pickerDay === day;
+                      return (
+                        <TouchableOpacity
+                          key={day}
+                          style={[
+                            styles.datePickerOption,
+                            isSelected && styles.datePickerOptionSelected,
+                          ]}
+                          onPress={() => setPickerDay(day)}
+                        >
+                          <Text
+                            style={[
+                              styles.datePickerOptionText,
+                              isSelected && styles.datePickerOptionTextSelected,
+                            ]}
+                          >
+                            {day}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              </View>
+
+              <View style={styles.dateActions}>
+                <TouchableOpacity
+                  style={[styles.dateActionBtn, styles.dateCancelBtn]}
+                  onPress={() => setShowWhenFoundPicker(false)}
+                >
+                  <Text style={[styles.dateActionText, styles.dateCancelText]}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.dateActionBtn, styles.dateConfirmBtn]}
+                  onPress={() => {
+                    const iso = formatISODate(pickerYear, pickerMonth, pickerDay);
+                    setWhenFound(iso);
+                    setShowWhenFoundPicker(false);
+                  }}
+                >
+                  <Text style={[styles.dateActionText, styles.dateConfirmText]}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
     </Page>
   );
@@ -520,5 +1008,306 @@ const styles = StyleSheet.create({
   modalButtonTextConfirm: {
     color: '#fff',
     fontWeight: '600',
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10B981',
+    paddingVertical: 12,
+    borderRadius: 10,
+    gap: 8,
+    marginTop: 16,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  formModalContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  formModalHeader: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  formModalHeaderContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  formModalTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  formModalTitle: {
+    fontSize: 26,
+    fontWeight: '700',
+    color: '#1F2937',
+    letterSpacing: -0.5,
+  },
+  formModalSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 4,
+    lineHeight: 20,
+  },
+  formCloseButton: {
+    padding: 4,
+  },
+  formModalContent: {
+    flex: 1,
+  },
+  formModalContentContainer: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+  formSection: {
+    marginBottom: 32,
+  },
+  formSectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  formSectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+    letterSpacing: -0.3,
+  },
+  formSectionSubtitle: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  textArea: {
+    minHeight: 120,
+    textAlignVertical: 'top',
+    paddingTop: 14,
+  },
+  imagePickerButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    borderRadius: 16,
+    padding: 32,
+    backgroundColor: '#FAFAFA',
+    gap: 12,
+  },
+  imagePickerIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imagePickerText: {
+    color: '#1F2937',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  imagePickerSubtext: {
+    color: '#6B7280',
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: -4,
+  },
+  imagePreviewContainer: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  previewImage: {
+    width: '100%',
+    height: 240,
+    backgroundColor: '#F3F4F6',
+  },
+  imageActions: {
+    flexDirection: 'row',
+    padding: 12,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    gap: 8,
+  },
+  imageActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: '#F9FAFB',
+    gap: 6,
+  },
+  removeButton: {
+    backgroundColor: '#FEF2F2',
+  },
+  imageActionText: {
+    color: '#10B981',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  removeButtonText: {
+    color: '#EF4444',
+  },
+  submitContainer: {
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  submitButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10B981',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#D1D5DB',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
+    letterSpacing: 0.3,
+  },
+  submitLoader: {
+    marginRight: 0,
+  },
+  requiredNote: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  dateModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  dateModalBackdropTouchable: {
+    flex: 1,
+  },
+  dateModalCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
+    maxHeight: '70%',
+  },
+  dateModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  dateModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  datePickerContainer: {
+    flexDirection: 'row',
+    height: 200,
+    marginBottom: 20,
+    gap: 12,
+  },
+  datePickerColumn: {
+    flex: 1,
+  },
+  datePickerLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 8,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  datePickerScroll: {
+    flex: 1,
+  },
+  datePickerContent: {
+    paddingVertical: 60,
+  },
+  datePickerOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    marginBottom: 4,
+    alignItems: 'center',
+  },
+  datePickerOptionSelected: {
+    backgroundColor: '#10B981',
+  },
+  datePickerOptionText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  datePickerOptionTextSelected: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  dateActions: {
+    marginTop: 12,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  dateActionBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateCancelBtn: {
+    backgroundColor: '#F3F4F6',
+  },
+  dateConfirmBtn: {
+    backgroundColor: '#10B981',
+  },
+  dateActionText: {
+    fontWeight: '700',
+  },
+  dateCancelText: {
+    color: '#374151',
+  },
+  dateConfirmText: {
+    color: '#fff',
   },
 });
