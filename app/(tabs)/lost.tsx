@@ -7,6 +7,7 @@ import {
   getItemImageUrl,
   getItems,
   searchLostItemsWithAI,
+  searchLostItemsWithImageAI,
   type ItemWithMatchScore,
   type ItemWithProfile,
 } from '@/lib/api';
@@ -139,6 +140,8 @@ export default function LostItemsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] =
     useState<ItemWithMatchScore[]>([]);
+  const [searchImageUri, setSearchImageUri] = useState<string | null>(null);
+  const [searchMode, setSearchMode] = useState<'text' | 'image'>('text');
   const [isSearching, setIsSearching] = useState(false);
   const [isSearchMode, setIsSearchMode] = useState(false);
 
@@ -199,6 +202,26 @@ export default function LostItemsScreen() {
       setImageUri(result.assets[0].uri);
     }
   };
+
+  const pickSearchImage = async () => {
+  const { status } =
+    await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (status !== 'granted') {
+    Alert.alert('Permission needed');
+    return;
+  }
+
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    quality: 0.8,
+  });
+
+  if (!result.canceled && result.assets[0]) {
+    setSearchImageUri(result.assets[0].uri);
+    setSearchMode('image');
+    handleImageSearch(result.assets[0].uri);
+  }
+};
 
   const takePhoto = async () => {
     const { status } =
@@ -368,11 +391,31 @@ export default function LostItemsScreen() {
     }
   };
 
-  const handleClearSearch = () => {
-    setSearchQuery('');
+  const handleImageSearch = async (uri: string) => {
+  setIsSearching(true);
+  setIsSearchMode(true);
+
+  try {
+    const results = await searchLostItemsWithImageAI(uri, {
+      limit: 20,
+      minScore: 0.35,
+    });
+    setSearchResults(results);
+  } catch (error: any) {
+    Alert.alert('Search Error', error.message);
     setIsSearchMode(false);
-    setSearchResults([]);
-  };
+  } finally {
+    setIsSearching(false);
+  }
+};
+
+  const handleClearSearch = () => {
+  setSearchQuery('');
+  setSearchImageUri(null);
+  setSearchMode('text');
+  setIsSearchMode(false);
+  setSearchResults([]);
+};
 
   if (loading) {
     return (
@@ -442,8 +485,16 @@ export default function LostItemsScreen() {
               </>
             )}
           </TouchableOpacity>
+          <TouchableOpacity
+          style={styles.searchButton}
+          onPress={pickSearchImage}
+          >
+          <Ionicons name="camera" size={18} color="#fff" />
+          <Text style={styles.searchButtonText}>Image Search</Text>
+        </TouchableOpacity>
         </View>
 
+        
         {isSearchMode && (
           <TouchableOpacity
             style={styles.backButton}
