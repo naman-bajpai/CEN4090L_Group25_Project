@@ -1,10 +1,10 @@
+import Page from '@/components/Page';
 import { getItemImageUrl, getItems } from '@/lib/api';
 import type { Tables } from '@/lib/database.types';
 import { useAuth } from '@/lib/session';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import Page from '@/components/Page';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -32,15 +32,21 @@ function ItemCard({ item, onPress }: { item: ItemWithProfile; onPress: () => voi
   }, [item.image_path]);
 
   return (
-    <TouchableOpacity style={styles.itemCard} onPress={onPress}>
-      {imageUrl && (
+    <TouchableOpacity style={styles.itemCard} onPress={onPress} activeOpacity={0.7}>
+      {imageUrl ? (
         <Image source={{ uri: imageUrl }} style={styles.itemImage} resizeMode="cover" />
+      ) : (
+        <View style={styles.itemImagePlaceholder}>
+          <Ionicons name="image-outline" size={40} color="#D1D5DB" />
+        </View>
       )}
       <View style={styles.itemContent}>
         <View style={styles.itemHeader}>
-          <Text style={styles.itemTitle} numberOfLines={1}>
-            {item.title}
-          </Text>
+          <View style={styles.itemTitleContainer}>
+            <Text style={styles.itemTitle} numberOfLines={2}>
+              {item.title}
+            </Text>
+          </View>
           <View
             style={[
               styles.statusBadge,
@@ -62,13 +68,13 @@ function ItemCard({ item, onPress }: { item: ItemWithProfile; onPress: () => voi
             <Ionicons
               name={item.type === 'lost' ? 'search' : 'checkmark-circle'}
               size={14}
-              color="#666"
+              color="#6B7280"
             />
             <Text style={styles.itemMetaText}>{item.type}</Text>
           </View>
           {item.location && (
             <View style={styles.itemMeta}>
-              <Ionicons name="location" size={14} color="#666" />
+              <Ionicons name="location" size={14} color="#6B7280" />
               <Text style={styles.itemMetaText}>{item.location}</Text>
             </View>
           )}
@@ -128,14 +134,15 @@ export default function HomeScreen() {
 
   return (
     <Page>
-    <View style={{ flex: 1 }}>
+    <View style={styles.container}>
       <StatusBar style="dark" />
       <ScrollView
-        style={styles.container}
+        style={styles.scrollView}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+        showsVerticalScrollIndicator={false}
       >
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <Text style={styles.title}>FSU Lost & Found</Text>
         <Text style={styles.subtitle}>Welcome back!</Text>
       </View>
@@ -181,18 +188,22 @@ export default function HomeScreen() {
 
         {recentItems.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="infinite" size={48} color="#ccc" />
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="cube-outline" size={64} color="#D1D5DB" />
+            </View>
             <Text style={styles.emptyText}>No items yet</Text>
             <Text style={styles.emptySubtext}>Be the first to post!</Text>
           </View>
         ) : (
-          recentItems.map((item) => (
-            <ItemCard
-              key={item.id}
-              item={item}
-              onPress={() => router.push(`/(tabs)/item/${item.id}`)}
-            />
-          ))
+          <View style={styles.itemsContainer}>
+            {recentItems.map((item) => (
+              <ItemCard
+                key={item.id}
+                item={item}
+                onPress={() => router.push(`/(tabs)/item/${item.id}`)}
+              />
+            ))}
+          </View>
         )}
       </View>
       </ScrollView>
@@ -204,112 +215,138 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#F9FAFB',
+  },
+  scrollView: {
+    flex: 1,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F9FAFB',
   },
   header: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#111827',
     marginBottom: 4,
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   statsContainer: {
     flexDirection: 'row',
-    padding: 16,
+    padding: 20,
     gap: 12,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    padding: 20,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginTop: 8,
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#111827',
+    marginTop: 12,
+    marginBottom: 4,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   section: {
-    padding: 16,
+    padding: 20,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+    letterSpacing: -0.3,
   },
   seeAll: {
     fontSize: 14,
     color: '#782F40',
     fontWeight: '600',
   },
+  itemsContainer: {
+    gap: 16,
+  },
   itemCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   itemImage: {
     width: '100%',
     height: 200,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#F3F4F6',
+  },
+  itemImagePlaceholder: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   itemContent: {
-    padding: 12,
+    padding: 16,
   },
   itemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 8,
+    gap: 12,
+  },
+  itemTitleContainer: {
+    flex: 1,
   },
   itemTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1a1a1a',
-    flex: 1,
+    color: '#111827',
+    lineHeight: 24,
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    marginLeft: 8,
   },
   statusOpen: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#D1FAE5',
   },
   statusClaimed: {
     backgroundColor: '#FEF3C7',
@@ -318,15 +355,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEE2E2',
   },
   statusText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: '#111827',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   itemDescription: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    color: '#6B7280',
+    marginBottom: 12,
+    lineHeight: 20,
   },
   itemFooter: {
     flexDirection: 'row',
@@ -335,27 +374,40 @@ const styles = StyleSheet.create({
   itemMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   itemMetaText: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   emptyState: {
     alignItems: 'center',
-    padding: 40,
+    padding: 48,
+    marginTop: 32,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    color: '#666',
-    marginTop: 16,
+    color: '#111827',
+    marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#999',
-    marginTop: 4,
+    color: '#6B7280',
+    textAlign: 'center',
   },
 });

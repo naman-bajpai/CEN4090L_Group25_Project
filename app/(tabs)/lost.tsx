@@ -6,16 +6,15 @@ import {
   deleteItem,
   getItemImageUrl,
   getItems,
-  searchLostItemsWithAI,
-  type ItemWithMatchScore,
   type ItemWithProfile,
 } from '@/lib/api';
 import { useAuth } from '@/lib/session';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -37,12 +36,10 @@ function LostItemCard({
   item,
   session,
   onDelete,
-  showMatchScore,
 }: {
-  item: ItemWithProfile | ItemWithMatchScore;
+  item: ItemWithProfile;
   session: any;
   onDelete: (id: string) => void;
-  showMatchScore?: boolean;
 }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
 
@@ -56,18 +53,20 @@ function LostItemCard({
 
   return (
     <View style={styles.itemCard}>
-      {imageUrl && (
-        <Image
-          source={{ uri: imageUrl }}
-          style={styles.itemImage}
-          resizeMode="cover"
-        />
+      {imageUrl ? (
+        <Image source={{ uri: imageUrl }} style={styles.itemImage} resizeMode="cover" />
+      ) : (
+        <View style={styles.itemImagePlaceholder}>
+          <Ionicons name="image-outline" size={40} color="#D1D5DB" />
+        </View>
       )}
       <View style={styles.itemContent}>
         <View style={styles.itemHeader}>
-          <Text style={styles.itemTitle} numberOfLines={1}>
-            {item.title}
-          </Text>
+          <View style={styles.itemTitleContainer}>
+            <Text style={styles.itemTitle} numberOfLines={2}>
+              {item.title}
+            </Text>
+          </View>
           <View
             style={[
               styles.statusBadge,
@@ -79,47 +78,39 @@ function LostItemCard({
             <Text style={styles.statusText}>{item.status}</Text>
           </View>
         </View>
+
         {item.description && (
           <Text style={styles.itemDescription} numberOfLines={2}>
             {item.description}
           </Text>
         )}
-        {'matchScore' in item && showMatchScore && (
-          <View style={styles.matchScoreContainer}>
-            <Ionicons name="star" size={14} color="#F59E0B" />
-            <Text style={styles.matchScoreText}>
-              {Math.round(item.matchScore * 100)}% match
-            </Text>
-          </View>
-        )}
+
         <View style={styles.itemFooter}>
           {item.location && (
             <View style={styles.itemMeta}>
-              <Ionicons name="location" size={14} color="#666" />
+              <Ionicons name="location" size={14} color="#6B7280" />
               <Text style={styles.itemMetaText}>{item.location}</Text>
             </View>
           )}
           {item.color && (
             <View style={styles.itemMeta}>
-              <Ionicons name="color-palette" size={14} color="#666" />
+              <Ionicons name="color-palette" size={14} color="#6B7280" />
               <Text style={styles.itemMetaText}>{item.color}</Text>
             </View>
           )}
           {item.when_lost && (
             <View style={styles.itemMeta}>
-              <Ionicons name="calendar" size={14} color="#666" />
+              <Ionicons name="calendar" size={14} color="#6B7280" />
               <Text style={styles.itemMetaText}>
                 {new Date(item.when_lost).toLocaleDateString()}
               </Text>
             </View>
           )}
         </View>
+
         {isOwner && (
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={() => onDelete(item.id)}
-          >
-            <Ionicons name="trash" size={16} color="#EF4444" />
+          <TouchableOpacity style={styles.deleteButton} onPress={() => onDelete(item.id)}>
+            <Ionicons name="trash-outline" size={16} color="#EF4444" />
             <Text style={styles.deleteButtonText}>Delete</Text>
           </TouchableOpacity>
         )}
@@ -131,15 +122,16 @@ function LostItemCard({
 export default function LostItemsScreen() {
   const { session } = useAuth();
   const insets = useSafeAreaInsets();
+
   const [items, setItems] = useState<ItemWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] =
-    useState<ItemWithMatchScore[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [filteredItems, setFilteredItems] = useState<ItemWithProfile[]>([]);
   const [isSearchMode, setIsSearchMode] = useState(false);
 
   // Form state
@@ -149,10 +141,7 @@ export default function LostItemsScreen() {
   const [location, setLocation] = useState('');
   const [whenLost, setWhenLost] = useState('');
   const [showWhenLostPicker, setShowWhenLostPicker] = useState(false);
-  const today = useMemo(() => new Date(), []);
-  const [pickerYear, setPickerYear] = useState<number>(new Date().getFullYear());
-  const [pickerMonth, setPickerMonth] = useState<number>(new Date().getMonth() + 1); // 1-12
-  const [pickerDay, setPickerDay] = useState<number>(new Date().getDate());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [imageUri, setImageUri] = useState<string | null>(null);
 
   const loadItems = async () => {
@@ -178,13 +167,9 @@ export default function LostItemsScreen() {
   };
 
   const pickImage = async () => {
-    const { status } =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
-        'Permission needed',
-        'We need camera roll permissions to upload images'
-      );
+      Alert.alert('Permission needed', 'We need camera roll permissions to upload images');
       return;
     }
 
@@ -201,13 +186,9 @@ export default function LostItemsScreen() {
   };
 
   const takePhoto = async () => {
-    const { status } =
-      await ImagePicker.requestCameraPermissionsAsync();
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert(
-        'Permission needed',
-        'We need camera permissions to take photos'
-      );
+      Alert.alert('Permission needed', 'We need camera permissions to take photos');
       return;
     }
 
@@ -237,42 +218,30 @@ export default function LostItemsScreen() {
     setLocation('');
     setWhenLost('');
     setImageUri(null);
+    setShowWhenLostPicker(false);
     setShowForm(false);
   };
 
-  // Helpers for date formatting/picker
-  const pad2 = (n: number) => (n < 10 ? `0${n}` : `${n}`);
-  const daysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
-  const formatISODate = (y: number, m: number, d: number) => `${y}-${pad2(m)}-${pad2(d)}`;
-  const formatDisplayDate = (y: number, m: number, d: number) =>
-    new Date(`${y}-${pad2(m)}-${pad2(d)}T00:00:00`).toLocaleDateString();
-
   const openWhenLostPicker = () => {
-    if (whenLost) {
-      const [y, m, d] = whenLost.split('-').map((v) => parseInt(v, 10));
-      if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
-        setPickerYear(y);
-        setPickerMonth(m);
-        setPickerDay(d);
-      }
-    }
-    setShowWhenLostPicker(true);
+    if (whenLost) setSelectedDate(new Date(whenLost));
+    else setSelectedDate(new Date());
+    requestAnimationFrame(() => setShowWhenLostPicker(true));
+  };
+
+  const handleDateConfirm = () => {
+    const isoDate = selectedDate.toISOString().split('T')[0];
+    setWhenLost(isoDate);
+    setShowWhenLostPicker(false);
   };
 
   const handleSubmit = async () => {
     if (!session) {
-      Alert.alert(
-        'Error',
-        'You must be logged in to report a lost item'
-      );
+      Alert.alert('Error', 'You must be logged in to report a lost item');
       return;
     }
 
     if (!title.trim()) {
-      Alert.alert(
-        'Missing Info',
-        'Please enter a title for your lost item'
-      );
+      Alert.alert('Missing Info', 'Please enter a title for your lost item');
       return;
     }
 
@@ -286,92 +255,65 @@ export default function LostItemsScreen() {
           description: description.trim() || null,
           color: color.trim() || null,
           location: location.trim() || null,
-          when_lost: whenLost
-            ? new Date(whenLost).toISOString()
-            : null,
+          when_lost: whenLost ? new Date(whenLost).toISOString() : null,
           status: 'open',
         },
         imageUri || undefined
       );
-      Alert.alert(
-        'Success',
-        'Lost item reported successfully!'
-      );
+      Alert.alert('Success', 'Lost item reported successfully!');
       resetForm();
       loadItems();
     } catch (error: any) {
-      Alert.alert(
-        'Error',
-        error.message || 'Failed to create lost item'
-      );
+      Alert.alert('Error', error.message || 'Failed to create lost item');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = (itemId: string) => {
-    Alert.alert(
-      'Delete Item',
-      'Are you sure you want to delete this item?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteItem(itemId);
-              loadItems();
-              if (isSearchMode) {
-                handleSearch();
-              }
-            } catch (error: any) {
-              Alert.alert(
-                'Error',
-                error.message || 'Failed to delete item'
-              );
-            }
-          },
+    Alert.alert('Delete Item', 'Are you sure you want to delete this item?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteItem(itemId);
+            loadItems();
+            if (isSearchMode) handleSearch(searchQuery);
+          } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to delete item');
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    
+    if (!query.trim()) {
       setIsSearchMode(false);
-      setSearchResults([]);
+      setFilteredItems([]);
       return;
     }
 
-    setIsSearching(true);
     setIsSearchMode(true);
-    try {
-      const results = await searchLostItemsWithAI(
-        searchQuery.trim(),
-        {
-          limit: 20,
-          minScore: 0.3,
-        }
-      );
-      setSearchResults(results);
-    } catch (error: any) {
-      console.error('Search error:', error);
-      Alert.alert(
-        'Search Error',
-        error.message ||
-          'Failed to search items. Please try again.'
-      );
-      setIsSearchMode(false);
-    } finally {
-      setIsSearching(false);
-    }
+    
+    const queryLower = query.toLowerCase().trim();
+    const filtered = items.filter((item) => {
+      const titleMatch = item.title?.toLowerCase().includes(queryLower);
+      const descriptionMatch = item.description?.toLowerCase().includes(queryLower);
+      return titleMatch || descriptionMatch;
+    });
+    
+    setFilteredItems(filtered);
   };
 
   const handleClearSearch = () => {
     setSearchQuery('');
     setIsSearchMode(false);
-    setSearchResults([]);
+    setFilteredItems([]);
   };
 
   if (loading) {
@@ -383,715 +325,502 @@ export default function LostItemsScreen() {
     );
   }
 
+  const displayItems = isSearchMode ? filteredItems : items;
+
   return (
     <Page>
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      <View style={styles.header}>
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchInputContainer}>
-            <Ionicons
-              name="search"
-              size={20}
-              color="#666"
-              style={styles.searchIcon}
-            />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Describe what you're looking for (e.g., 'red wallet with cards')"
-              placeholderTextColor="#999"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onSubmitEditing={handleSearch}
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity
-                onPress={handleClearSearch}
-                style={styles.clearButton}
+      <View style={styles.container}>
+        <StatusBar style="dark" />
+
+        {/* Header */}
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.title}>Lost Items</Text>
+              <Text style={styles.subtitle}>
+                {isSearchMode 
+                  ? `${filteredItems.length} result${filteredItems.length !== 1 ? 's' : ''}`
+                  : `${items.length} item${items.length !== 1 ? 's' : ''} reported`
+                }
+              </Text>
+            </View>
+            {session && !isSearchMode && (
+              <TouchableOpacity 
+                style={styles.addButton} 
+                onPress={() => setShowForm(true)}
+                activeOpacity={0.8}
               >
-                <Ionicons
-                  name="close-circle"
-                  size={20}
-                  color="#666"
-                />
+                <Ionicons name="add" size={20} color="#fff" />
               </TouchableOpacity>
             )}
           </View>
-          <TouchableOpacity
-            style={[
-              styles.searchButton,
-              isSearching && styles.searchButtonDisabled,
-            ]}
-            onPress={handleSearch}
-            disabled={isSearching || !searchQuery.trim()}
-          >
-            {isSearching ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <>
-                <Ionicons
-                  name="sparkles"
-                  size={18}
-                  color="#fff"
-                />
-                <Text style={styles.searchButtonText}>
-                  AI Search
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
 
-        {isSearchMode && (
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleClearSearch}
-          >
-            <Ionicons
-              name="arrow-back"
-              size={18}
-              color="#782F40"
-            />
-            <Text style={styles.backButtonText}>
-              Show All Items
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {session && !isSearchMode && (
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowForm(true)}
-          >
-            <Ionicons
-              name="add-circle"
-              size={24}
-              color="#fff"
-            />
-            <Text style={styles.addButtonText}>
-              Report Lost Item
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={{
-          paddingBottom: insets.bottom + 80,
-        }}
-        refreshControl={
-          !isSearchMode ? (
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-            />
-          ) : undefined
-        }
-      >
-        {isSearchMode ? (
-          isSearching ? (
-            <View style={styles.centerContainer}>
-              <ActivityIndicator
-                size="large"
-                color="#782F40"
+          {/* Search Bar */}
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <Ionicons name="search" size={20} color="#9CA3AF" style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search by name or description..."
+                placeholderTextColor="#9CA3AF"
+                value={searchQuery}
+                onChangeText={handleSearch}
+                returnKeyType="search"
               />
-              <Text style={styles.searchingText}>
-                Searching with AI...
-              </Text>
-            </View>
-          ) : searchResults.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons
-                name="search"
-                size={48}
-                color="#ccc"
-              />
-              <Text style={styles.emptyText}>
-                No matches found
-              </Text>
-              <Text style={styles.emptySubtext}>
-                Try describing your item differently or check
-                back later
-              </Text>
-            </View>
-          ) : (
-            <>
-              <View style={styles.resultsHeader}>
-                <Text style={styles.resultsText}>
-                  Found {searchResults.length} matching item
-                  {searchResults.length !== 1 ? 's' : ''}
-                </Text>
-              </View>
-              {searchResults.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  onPress={() =>
-                    router.push(`/(tabs)/item/${item.id}`)
-                  }
-                  activeOpacity={0.7}
-                >
-                  <LostItemCard
-                    item={item}
-                    session={session}
-                    onDelete={handleDelete}
-                    showMatchScore
-                  />
-                </TouchableOpacity>
-              ))}
-            </>
-          )
-        ) : items.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons
-              name="search"
-              size={48}
-              color="#ccc"
-            />
-            <Text style={styles.emptyText}>
-              No lost items reported
-            </Text>
-            <Text style={styles.emptySubtext}>
-              {session
-                ? 'Be the first to report a lost item!'
-                : 'Sign in to report a lost item'}
-            </Text>
-          </View>
-        ) : (
-          items.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              onPress={() =>
-                router.push(`/(tabs)/item/${item.id}`)
-              }
-              activeOpacity={0.7}
-            >
-              <LostItemCard
-                item={item}
-                session={session}
-                onDelete={handleDelete}
-                showMatchScore={false}
-              />
-            </TouchableOpacity>
-          ))
-        )}
-      </ScrollView>
-
-      <Modal
-        visible={showForm}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={resetForm}
-      >
-        <KeyboardAvoidingView
-          style={styles.modalContainer}
-          behavior={
-            Platform.OS === 'ios' ? 'padding' : 'height'
-          }
-          keyboardVerticalOffset={
-            Platform.OS === 'ios' ? 0 : 20
-          }
-        >
-          <View
-            style={[
-              styles.modalHeader,
-              { paddingTop: insets.top + 16 },
-            ]}
-          >
-            <View style={styles.modalHeaderContent}>
-              <View style={styles.modalTitleContainer}>
-                <Ionicons
-                  name="document-text"
-                  size={28}
-                  color="#782F40"
-                />
-                <Text style={styles.modalTitle}>
-                  Report Lost Item
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={resetForm}
-                style={styles.closeButton}
-                hitSlop={{
-                  top: 10,
-                  bottom: 10,
-                  left: 10,
-                  right: 10,
-                }}
-              >
-                <Ionicons
-                  name="close-circle"
-                  size={32}
-                  color="#666"
-                />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.modalSubtitle}>
-              Help others find your lost item by providing
-              details
-            </Text>
-          </View>
-
-          <ScrollView
-            style={styles.modalContent}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={
-              styles.modalContentContainer
-            }
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Image Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionTitleContainer}>
-                <Ionicons
-                  name="image"
-                  size={18}
-                  color="#782F40"
-                />
-                <Text style={styles.sectionTitle}>Photo</Text>
-              </View>
-              <Text style={styles.sectionSubtitle}>
-                Add a photo to help identify your item
-              </Text>
-
-              {imageUri ? (
-                <View style={styles.imagePreviewContainer}>
-                  <Image
-                    source={{ uri: imageUri }}
-                    style={styles.previewImage}
-                  />
-                  <View style={styles.imageActions}>
-                    <TouchableOpacity
-                      style={styles.imageActionButton}
-                      onPress={showImagePicker}
-                    >
-                      <Ionicons
-                        name="camera"
-                        size={18}
-                        color="#782F40"
-                      />
-                      <Text style={styles.imageActionText}>
-                        Change
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[
-                        styles.imageActionButton,
-                        styles.removeButton,
-                      ]}
-                      onPress={() => setImageUri(null)}
-                    >
-                      <Ionicons
-                        name="trash"
-                        size={18}
-                        color="#EF4444"
-                      />
-                      <Text
-                        style={[
-                          styles.imageActionText,
-                          styles.removeButtonText,
-                        ]}
-                      >
-                        Remove
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={styles.imagePickerButton}
-                  onPress={showImagePicker}
-                  activeOpacity={0.7}
-                >
-                  <View
-                    style={styles.imagePickerIconContainer}
-                  >
-                    <Ionicons
-                      name="camera-outline"
-                      size={32}
-                      color="#782F40"
-                    />
-                  </View>
-                  <Text style={styles.imagePickerText}>
-                    Add Photo
-                  </Text>
-                  <Text style={styles.imagePickerSubtext}>
-                    Optional - Tap to add from camera or
-                    gallery
-                  </Text>
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={handleClearSearch} style={styles.clearButton}>
+                  <Ionicons name="close-circle" size={20} color="#9CA3AF" />
                 </TouchableOpacity>
               )}
             </View>
+          </View>
 
-            {/* Basic Information Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionTitleContainer}>
-                <Ionicons
-                  name="information-circle"
-                  size={18}
-                  color="#782F40"
-                />
-                <Text style={styles.sectionTitle}>
-                  Basic Information
-                </Text>
-              </View>
+          {isSearchMode && (
+            <TouchableOpacity style={styles.backButton} onPress={handleClearSearch}>
+              <Ionicons name="arrow-back" size={16} color="#782F40" />
+              <Text style={styles.backButtonText}>Clear search</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
-              <Field
-                label="Item Title"
-                placeholder="e.g., Red Wallet, iPhone 13"
-                value={title}
-                onChangeText={setTitle}
-                autoCapitalize="words"
-                icon="pricetag"
-              />
-
-              <Field
-                label="Description"
-                placeholder="Describe your item in detail..."
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                numberOfLines={4}
-                style={styles.textArea}
-                icon="text"
-              />
-            </View>
-
-            {/* Additional Details Section */}
-            <View style={styles.section}>
-              <View style={styles.sectionTitleContainer}>
-                <Ionicons
-                  name="list"
-                  size={18}
-                  color="#782F40"
-                />
-                <Text style={styles.sectionTitle}>
-                  Additional Details
-                </Text>
-              </View>
-              <Text style={styles.sectionSubtitle}>
-                These details help others identify your item
-              </Text>
-
-              <Field
-                label="Color"
-                placeholder="e.g., Red, Blue, Black"
-                value={color}
-                onChangeText={setColor}
-                icon="color-palette"
-              />
-
-              <Field
-                label="Location"
-                placeholder="Where did you lose it?"
-                value={location}
-                onChangeText={setLocation}
-                icon="location"
-              />
-
-              {/* When Lost: replace text input with date picker trigger */}
-              <TouchableOpacity activeOpacity={0.7} onPress={openWhenLostPicker}>
-                <Field
-                  label="When Lost"
-                  placeholder="Select date"
-                  value={whenLost ? new Date(whenLost).toLocaleDateString() : ''}
-                  editable={false}
-                  icon="calendar"
-                  rightAccessory={<Ionicons name="chevron-down" size={18} color="#6B7280" />}
-                />
-              </TouchableOpacity>
-            </View>
-
-            {/* Submit Button */}
-            <View style={styles.submitContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.submitButton,
-                  (submitting || !title.trim()) &&
-                    styles.submitButtonDisabled,
-                ]}
-                onPress={handleSubmit}
-                disabled={submitting || !title.trim()}
-                activeOpacity={0.8}
-              >
-                {submitting ? (
-                  <>
-                    <ActivityIndicator
-                      size="small"
-                      color="#fff"
-                      style={styles.submitLoader}
-                    />
-                    <Text style={styles.submitButtonText}>
-                      Submitting...
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={20}
-                      color="#fff"
-                    />
-                    <Text style={styles.submitButtonText}>
-                      Report Lost Item
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-              <Text style={styles.requiredNote}>
-                * Required fields must be filled
-              </Text>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </Modal>
-
-      {/* Custom Fast Date Picker */}
-      {showWhenLostPicker && (
-        <Modal
-          visible
-          animationType="slide"
-          transparent
-          onRequestClose={() => setShowWhenLostPicker(false)}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+          refreshControl={
+            !isSearchMode ? <RefreshControl refreshing={refreshing} onRefresh={onRefresh} /> : undefined
+          }
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.dateModalBackdrop}>
-            <TouchableOpacity
-              style={styles.dateModalBackdropTouchable}
-              activeOpacity={1}
-              onPress={() => setShowWhenLostPicker(false)}
-            />
-            <View style={styles.dateModalCard}>
-              <View style={styles.dateModalHeader}>
-                <Text style={styles.dateModalTitle}>Select Date</Text>
+          {displayItems.length === 0 ? (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconContainer}>
+                <Ionicons 
+                  name={isSearchMode ? "search-outline" : "document-text-outline"} 
+                  size={64} 
+                  color="#D1D5DB" 
+                />
+              </View>
+              <Text style={styles.emptyText}>
+                {isSearchMode ? 'No matches found' : 'No lost items reported'}
+              </Text>
+              <Text style={styles.emptySubtext}>
+                {isSearchMode 
+                  ? 'Try a different search term'
+                  : session 
+                    ? 'Be the first to report a lost item!' 
+                    : 'Sign in to report a lost item'
+                }
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.itemsContainer}>
+              {displayItems.map((item) => (
+                <TouchableOpacity 
+                  key={item.id} 
+                  onPress={() => router.push(`/(tabs)/item/${item.id}`)} 
+                  activeOpacity={0.7}
+                >
+                  <LostItemCard item={item} session={session} onDelete={handleDelete} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Report Lost Item Modal */}
+        <Modal visible={showForm} animationType="slide" transparent={false} onRequestClose={resetForm}>
+          <KeyboardAvoidingView
+            style={styles.modalContainer}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+          >
+            <View style={[styles.modalHeader, { paddingTop: insets.top + 16 }]}>
+              <View style={styles.modalHeaderContent}>
+                <View style={styles.modalTitleContainer}>
+                  <View style={styles.modalIconContainer}>
+                    <Ionicons name="document-text" size={24} color="#782F40" />
+                  </View>
+                  <View>
+                    <Text style={styles.modalTitle}>Report Lost Item</Text>
+                    <Text style={styles.modalSubtitle}>Help others find your item</Text>
+                  </View>
+                </View>
                 <TouchableOpacity
-                  onPress={() => setShowWhenLostPicker(false)}
+                  onPress={resetForm}
+                  style={styles.closeButton}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <Ionicons name="close" size={24} color="#6B7280" />
                 </TouchableOpacity>
               </View>
-              
-              <View style={styles.datePickerContainer}>
-                {/* Year Picker */}
-                <View style={styles.datePickerColumn}>
-                  <Text style={styles.datePickerLabel}>Year</Text>
-                  <ScrollView
-                    style={styles.datePickerScroll}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.datePickerContent}
-                  >
-                    {Array.from({ length: 10 }, (_, i) => {
-                      const year = today.getFullYear() - i;
-                      const isSelected = pickerYear === year;
-                      return (
-                        <TouchableOpacity
-                          key={year}
-                          style={[styles.datePickerOption, isSelected && styles.datePickerOptionSelected]}
-                          onPress={() => setPickerYear(year)}
-                        >
-                          <Text style={[styles.datePickerOptionText, isSelected && styles.datePickerOptionTextSelected]}>
-                            {year}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-
-                {/* Month Picker */}
-                <View style={styles.datePickerColumn}>
-                  <Text style={styles.datePickerLabel}>Month</Text>
-                  <ScrollView
-                    style={styles.datePickerScroll}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.datePickerContent}
-                  >
-                    {Array.from({ length: 12 }, (_, i) => {
-                      const month = i + 1;
-                      const isSelected = pickerMonth === month;
-                      const monthName = new Date(2000, i, 1).toLocaleDateString('en-US', { month: 'short' });
-                      return (
-                        <TouchableOpacity
-                          key={month}
-                          style={[styles.datePickerOption, isSelected && styles.datePickerOptionSelected]}
-                          onPress={() => {
-                            setPickerMonth(month);
-                            // Adjust day if it's invalid for the new month
-                            const maxDay = daysInMonth(pickerYear, month);
-                            if (pickerDay > maxDay) {
-                              setPickerDay(maxDay);
-                            }
-                          }}
-                        >
-                          <Text style={[styles.datePickerOptionText, isSelected && styles.datePickerOptionTextSelected]}>
-                            {monthName}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-
-                {/* Day Picker */}
-                <View style={styles.datePickerColumn}>
-                  <Text style={styles.datePickerLabel}>Day</Text>
-                  <ScrollView
-                    style={styles.datePickerScroll}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.datePickerContent}
-                  >
-                    {Array.from({ length: daysInMonth(pickerYear, pickerMonth) }, (_, i) => {
-                      const day = i + 1;
-                      const isSelected = pickerDay === day;
-                      return (
-                        <TouchableOpacity
-                          key={day}
-                          style={[styles.datePickerOption, isSelected && styles.datePickerOptionSelected]}
-                          onPress={() => setPickerDay(day)}
-                        >
-                          <Text style={[styles.datePickerOptionText, isSelected && styles.datePickerOptionTextSelected]}>
-                            {day}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-              </View>
-
-              <View style={styles.dateActions}>
-                <TouchableOpacity
-                  style={[styles.dateActionBtn, styles.dateCancelBtn]}
-                  onPress={() => setShowWhenLostPicker(false)}
-                >
-                  <Text style={[styles.dateActionText, styles.dateCancelText]}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.dateActionBtn, styles.dateConfirmBtn]}
-                  onPress={() => {
-                    const iso = formatISODate(pickerYear, pickerMonth, pickerDay);
-                    setWhenLost(iso);
-                    setShowWhenLostPicker(false);
-                  }}
-                >
-                  <Text style={[styles.dateActionText, styles.dateConfirmText]}>Done</Text>
-                </TouchableOpacity>
-              </View>
             </View>
-          </View>
+
+            <ScrollView
+              style={styles.modalContent}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalContentContainer}
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* Image Section */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Photo</Text>
+                <Text style={styles.sectionSubtitle}>Add a photo to help identify your item</Text>
+
+                {imageUri ? (
+                  <View style={styles.imagePreviewContainer}>
+                    <Image source={{ uri: imageUri }} style={styles.previewImage} />
+                    <View style={styles.imageActions}>
+                      <TouchableOpacity style={styles.imageActionButton} onPress={showImagePicker}>
+                        <Ionicons name="camera" size={18} color="#782F40" />
+                        <Text style={styles.imageActionText}>Change</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.imageActionButton, styles.removeButton]}
+                        onPress={() => setImageUri(null)}
+                      >
+                        <Ionicons name="trash" size={18} color="#EF4444" />
+                        <Text style={[styles.imageActionText, styles.removeButtonText]}>Remove</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <TouchableOpacity style={styles.imagePickerButton} onPress={showImagePicker} activeOpacity={0.7}>
+                    <View style={styles.imagePickerIconContainer}>
+                      <Ionicons name="camera-outline" size={32} color="#782F40" />
+                    </View>
+                    <Text style={styles.imagePickerText}>Add Photo</Text>
+                    <Text style={styles.imagePickerSubtext}>Optional</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Basic Information */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Basic Information</Text>
+
+                <Field
+                  label="Item Title"
+                  placeholder="e.g., Red Wallet, iPhone 13"
+                  value={title}
+                  onChangeText={setTitle}
+                  autoCapitalize="words"
+                  icon="pricetag"
+                />
+
+                <Field
+                  label="Description"
+                  placeholder="Describe your item in detail..."
+                  value={description}
+                  onChangeText={setDescription}
+                  multiline
+                  numberOfLines={4}
+                  style={styles.textArea}
+                  icon="text"
+                />
+              </View>
+
+              {/* Additional Details */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Additional Details</Text>
+                <Text style={styles.sectionSubtitle}>
+                  These details help others identify your item
+                </Text>
+
+                <Field
+                  label="Color"
+                  placeholder="e.g., Red, Blue, Black"
+                  value={color}
+                  onChangeText={setColor}
+                  icon="color-palette"
+                />
+
+                <Field
+                  label="Location"
+                  placeholder="Where did you lose it?"
+                  value={location}
+                  onChangeText={setLocation}
+                  icon="location"
+                />
+
+                <TouchableOpacity activeOpacity={0.7} onPress={openWhenLostPicker}>
+                  <Field
+                    label="When Lost"
+                    placeholder="Select date"
+                    value={whenLost ? new Date(whenLost).toLocaleDateString() : ''}
+                    editable={false}
+                    icon="calendar"
+                    rightAccessory={<Ionicons name="chevron-down" size={18} color="#6B7280" />}
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* Submit Button */}
+              <View style={styles.submitContainer}>
+                <TouchableOpacity
+                  style={[styles.submitButton, (submitting || !title.trim()) && styles.submitButtonDisabled]}
+                  onPress={handleSubmit}
+                  disabled={submitting || !title.trim()}
+                  activeOpacity={0.8}
+                >
+                  {submitting ? (
+                    <>
+                      <ActivityIndicator size="small" color="#fff" style={styles.submitLoader} />
+                      <Text style={styles.submitButtonText}>Submitting...</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                      <Text style={styles.submitButtonText}>Report Lost Item</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+                <Text style={styles.requiredNote}>* Title is required</Text>
+              </View>
+            </ScrollView>
+
+            {/* Date Picker Modal */}
+            {showWhenLostPicker && (
+              <Modal
+                visible
+                transparent
+                animationType="fade"
+                presentationStyle="overFullScreen"
+                statusBarTranslucent
+                onRequestClose={() => setShowWhenLostPicker(false)}
+              >
+                <View style={styles.dateModalBackdrop}>
+                  <TouchableOpacity
+                    style={styles.dateModalBackdropTouchable}
+                    activeOpacity={1}
+                    onPress={() => setShowWhenLostPicker(false)}
+                  />
+                  <View style={styles.dateModalCard}>
+                    <View style={styles.dateModalHeader}>
+                      <Text style={styles.dateModalTitle}>Select Date</Text>
+                      <TouchableOpacity onPress={() => setShowWhenLostPicker(false)}>
+                        <Ionicons name="close" size={24} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+
+                    <DateTimePicker
+                      value={selectedDate}
+                      mode="date"
+                      maximumDate={new Date()}
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      themeVariant="light"
+                      textColor="#111827"
+                      onChange={(event: any, date?: Date) => {
+                        if (Platform.OS === 'android') {
+                          setShowWhenLostPicker(false);
+                          if (event.type === 'set' && date) {
+                            setSelectedDate(date);
+                            setWhenLost(date.toISOString().split('T')[0]);
+                          }
+                          return;
+                        }
+                        if (date) setSelectedDate(date);
+                        if (event.type === 'dismissed') setShowWhenLostPicker(false);
+                      }}
+                    />
+
+                    {Platform.OS === 'ios' && (
+                      <View style={styles.dateActions}>
+                        <TouchableOpacity
+                          style={[styles.dateActionBtn, styles.dateCancelBtn]}
+                          onPress={() => setShowWhenLostPicker(false)}
+                        >
+                          <Text style={[styles.dateActionText, styles.dateCancelText]}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.dateActionBtn, styles.dateConfirmBtn]}
+                          onPress={handleDateConfirm}
+                        >
+                          <Text style={[styles.dateActionText, styles.dateConfirmText]}>Done</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </Modal>
+            )}
+          </KeyboardAvoidingView>
         </Modal>
-      )}
-    </View>
+      </View>
     </Page>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'transparent' },
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F9FAFB',
   },
   header: {
-    padding: 20,
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#111827',
+    letterSpacing: -0.5,
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 16,
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   addButton: {
-    flexDirection: 'row',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#782F40',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#782F40',
-    paddingVertical: 12,
-    borderRadius: 10,
-    gap: 8,
+    shadowColor: '#782F40',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  addButtonText: {
-    color: '#fff',
-    fontWeight: '600',
+  searchContainer: {
+    marginTop: 8,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  searchIcon: { marginRight: 12 },
+  searchInput: {
+    flex: 1,
     fontSize: 16,
+    color: '#111827',
+    paddingVertical: 0,
+  },
+  clearButton: { padding: 4, marginLeft: 8 },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  backButtonText: {
+    color: '#782F40',
+    fontWeight: '600',
+    fontSize: 14,
   },
   scrollView: { flex: 1 },
+  itemsContainer: {
+    padding: 16,
+    gap: 16,
+  },
   itemCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    margin: 16,
-    marginBottom: 0,
+    borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   itemImage: {
     width: '100%',
     height: 200,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#F3F4F6',
   },
-  itemContent: { padding: 12 },
+  itemImagePlaceholder: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  itemContent: {
+    padding: 16,
+  },
   itemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 8,
+    gap: 12,
+  },
+  itemTitleContainer: {
+    flex: 1,
   },
   itemTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1a1a1a',
-    flex: 1,
+    color: '#111827',
+    lineHeight: 24,
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    marginLeft: 8,
   },
-  statusOpen: { backgroundColor: '#DCFCE7' },
+  statusOpen: { backgroundColor: '#D1FAE5' },
   statusClaimed: { backgroundColor: '#FEF3C7' },
   statusClosed: { backgroundColor: '#FEE2E2' },
   statusText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: '#111827',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   itemDescription: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    color: '#6B7280',
+    marginBottom: 12,
+    lineHeight: 20,
   },
   itemFooter: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 16,
     marginBottom: 8,
   },
   itemMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
-  itemMetaText: { fontSize: 12, color: '#666' },
+  itemMetaText: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
   deleteButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 8,
+    gap: 6,
+    marginTop: 12,
     paddingVertical: 8,
+    alignSelf: 'flex-start',
   },
   deleteButtonText: {
     color: '#EF4444',
@@ -1100,75 +829,85 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: 'center',
-    padding: 40,
-    marginTop: 40,
+    padding: 48,
+    marginTop: 64,
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    color: '#666',
-    marginTop: 16,
+    color: '#111827',
+    marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#999',
-    marginTop: 4,
+    color: '#6B7280',
+    textAlign: 'center',
   },
-  modalContainer: { flex: 1, backgroundColor: '#F9FAFB' },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
   modalHeader: {
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
     paddingBottom: 20,
     paddingHorizontal: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
   },
   modalHeaderContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
   },
   modalTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     flex: 1,
   },
+  modalIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FEF2F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   modalTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '700',
-    color: '#1F2937',
-    letterSpacing: -0.5,
+    color: '#111827',
+    marginBottom: 2,
   },
   modalSubtitle: {
     fontSize: 14,
     color: '#6B7280',
-    marginTop: 4,
-    lineHeight: 20,
   },
-  closeButton: { padding: 4 },
+  closeButton: {
+    padding: 4,
+  },
   modalContent: { flex: 1 },
   modalContentContainer: {
     padding: 20,
     paddingBottom: 100,
   },
-  section: { marginBottom: 32 },
-  sectionTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
+  section: {
+    marginBottom: 32,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
-    letterSpacing: -0.3,
+    color: '#111827',
+    marginBottom: 6,
   },
   sectionSubtitle: {
     fontSize: 13,
@@ -1188,7 +927,7 @@ const styles = StyleSheet.create({
     borderColor: '#E5E7EB',
     borderStyle: 'dashed',
     borderRadius: 16,
-    padding: 32,
+    padding: 40,
     backgroundColor: '#FAFAFA',
     gap: 12,
   },
@@ -1201,15 +940,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   imagePickerText: {
-    color: '#1F2937',
+    color: '#111827',
     fontWeight: '600',
     fontSize: 16,
   },
   imagePickerSubtext: {
     color: '#6B7280',
     fontSize: 13,
-    textAlign: 'center',
-    marginTop: -4,
   },
   imagePreviewContainer: {
     borderRadius: 16,
@@ -1244,13 +981,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     gap: 6,
   },
-  removeButton: { backgroundColor: '#FEF2F2' },
+  removeButton: {
+    backgroundColor: '#FEF2F2',
+  },
   imageActionText: {
     color: '#782F40',
     fontWeight: '600',
     fontSize: 14,
   },
-  removeButtonText: { color: '#EF4444' },
+  removeButtonText: {
+    color: '#EF4444',
+  },
   submitContainer: {
     marginTop: 8,
     marginBottom: 20,
@@ -1280,7 +1021,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     letterSpacing: 0.3,
   },
-  submitLoader: { marginRight: 0 },
+  submitLoader: {
+    marginRight: 0,
+  },
   requiredNote: {
     fontSize: 12,
     color: '#9CA3AF',
@@ -1313,50 +1056,7 @@ const styles = StyleSheet.create({
   dateModalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
-  },
-  datePickerContainer: {
-    flexDirection: 'row',
-    height: 200,
-    marginBottom: 20,
-    gap: 12,
-  },
-  datePickerColumn: {
-    flex: 1,
-  },
-  datePickerLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-    marginBottom: 8,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  datePickerScroll: {
-    flex: 1,
-  },
-  datePickerContent: {
-    paddingVertical: 60,
-  },
-  datePickerOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    marginBottom: 4,
-    alignItems: 'center',
-  },
-  datePickerOptionSelected: {
-    backgroundColor: '#782F40',
-  },
-  datePickerOptionText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  datePickerOptionTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    color: '#111827',
   },
   dateActions: {
     marginTop: 12,
@@ -1370,77 +1070,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dateCancelBtn: { backgroundColor: '#F3F4F6' },
-  dateConfirmBtn: { backgroundColor: '#782F40' },
-  dateActionText: { fontWeight: '700' },
-  dateCancelText: { color: '#374151' },
-  dateConfirmText: { color: '#fff' },
-  searchContainer: { marginBottom: 12, gap: 8 },
-  searchInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: '#e5e5e5',
+  dateCancelBtn: {
+    backgroundColor: '#F3F4F6',
   },
-  searchIcon: { marginRight: 8 },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#1a1a1a',
-  },
-  clearButton: { padding: 4 },
-  searchButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+  dateConfirmBtn: {
     backgroundColor: '#782F40',
-    paddingVertical: 12,
-    borderRadius: 10,
-    gap: 8,
   },
-  searchButtonDisabled: { opacity: 0.6 },
-  searchButtonText: {
+  dateActionText: {
+    fontWeight: '700',
+  },
+  dateCancelText: {
+    color: '#374151',
+  },
+  dateConfirmText: {
     color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    gap: 6,
-    marginBottom: 8,
-  },
-  backButtonText: {
-    color: '#782F40',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  matchScoreContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 8,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    backgroundColor: '#FEF3C7',
-    borderRadius: 12,
-    alignSelf: 'flex-start',
-  },
-  matchScoreText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#92400E',
-  },
-  searchingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#666',
   },
   resultsHeader: {
     padding: 16,
@@ -1448,7 +1091,7 @@ const styles = StyleSheet.create({
   },
   resultsText: {
     fontSize: 14,
-    color: '#666',
+    color: '#6B7280',
     fontWeight: '500',
   },
 });

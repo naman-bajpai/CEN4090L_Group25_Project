@@ -138,15 +138,57 @@ export async function updateItem(itemId: string, updates: TablesUpdate<'items'>)
 }
 
 export async function claimItem(itemId: string) {
+  // First, check if the item exists and get its current status
+  const { data: existingItem, error: fetchError } = await supabase
+    .from('items')
+    .select('id, status, type')
+    .eq('id', itemId)
+    .maybeSingle();
+  
+  if (fetchError) {
+    throw new Error(`Failed to fetch item: ${fetchError.message}`);
+  }
+  
+  if (!existingItem) {
+    throw new Error('Item not found');
+  }
+  
+  // Check if item is already claimed or closed
+  if (existingItem.status === 'claimed') {
+    throw new Error('This item has already been claimed');
+  }
+  
+  if (existingItem.status === 'closed') {
+    throw new Error('This item is closed and cannot be claimed');
+  }
+  
+  // Only allow claiming found items
+  if (existingItem.type !== 'found') {
+    throw new Error('Only found items can be claimed');
+  }
+  
+  // Now update the item
   const { data, error } = await supabase
     .from('items')
     .update({ status: 'claimed' })
     .eq('id', itemId)
-    .select('*')
-    .single();
-  if (error) throw error;
+    .eq('status', 'open') // Only update if still open
+    .select('*');
   
-  const enriched = await enrichItemsWithProfiles([data]);
+  if (error) {
+    throw new Error(`Failed to claim item: ${error.message}`);
+  }
+  
+  if (!data || data.length === 0) {
+    throw new Error('Item could not be updated. It may have been claimed by someone else.');
+  }
+  
+  if (data.length > 1) {
+    // This shouldn't happen, but handle it gracefully
+    console.warn('Multiple items returned for claimItem, using first one');
+  }
+  
+  const enriched = await enrichItemsWithProfiles([data[0]]);
   return enriched[0];
 }
 

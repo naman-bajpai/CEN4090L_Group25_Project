@@ -20,10 +20,19 @@ const adminNavItems: NavItem[] = [
 export default function AdminBottomNav() {
   const router = useRouter();
   const pathname = usePathname();
+  // Normalize paths: remove route groups like (tabs), collapse slashes, trim trailing slash
+  const normalize = (path: string) => {
+    const stripped = (path || '').replace(/\([^/]+\)/g, '');
+    let p = stripped.replace(/\/+/, '/');
+    if (!p.startsWith('/')) p = `/${p}`;
+    if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
+    return p;
+  };
 
   const isActive = (route: string) => {
-    const normalizedPath = pathname || '';
-    return normalizedPath === route || normalizedPath.startsWith(route);
+    const current = normalize(pathname || '');
+    const target = normalize(route);
+    return current === target || current.startsWith(`${target}/`);
   };
 
   return (

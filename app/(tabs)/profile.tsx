@@ -269,17 +269,29 @@ export default function ProfileScreen() {
           <View style={styles.itemsContainer}>
             {myItems.length === 0 ? (
               <View style={styles.emptyState}>
-                <Ionicons name="cube-outline" size={48} color="#ccc" />
+                <View style={styles.emptyIconContainer}>
+                  <Ionicons name="cube-outline" size={64} color="#D1D5DB" />
+                </View>
                 <Text style={styles.emptyText}>No items yet</Text>
                 <Text style={styles.emptySubtext}>Start by reporting a lost or found item</Text>
               </View>
             ) : (
-              myItems.map((item) => <ProfileItemCard key={item.id} item={item} />)
+              myItems.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  onPress={() => router.push(`/(tabs)/item/${item.id}`)}
+                  activeOpacity={0.7}
+                >
+                  <ProfileItemCard item={item} />
+                </TouchableOpacity>
+              ))
             )}
           </View>
         ) : (
           <View style={styles.emptyState}>
-            <Ionicons name="notifications-outline" size={48} color="#ccc" />
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="notifications-outline" size={64} color="#D1D5DB" />
+            </View>
             <Text style={styles.emptyText}>No notifications</Text>
             <Text style={styles.emptySubtext}>You'll see notifications here</Text>
           </View>
@@ -397,148 +409,170 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#F9FAFB',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#F9FAFB',
   },
   scrollView: {
     flex: 1,
   },
   profileHeader: {
     alignItems: 'center',
-    padding: 24,
+    padding: 32,
+    paddingTop: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   avatarContainer: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#FEF2F2',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   profileName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#111827',
     marginBottom: 4,
+    letterSpacing: -0.3,
   },
   profileEmail: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
+    color: '#6B7280',
+    marginBottom: 20,
+    fontWeight: '500',
   },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
     borderColor: '#782F40',
+    backgroundColor: '#fff',
   },
   editButtonText: {
     color: '#782F40',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 15,
   },
   statsContainer: {
     flexDirection: 'row',
-    padding: 16,
+    padding: 20,
     gap: 12,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
+    borderBottomColor: '#E5E7EB',
   },
   statCard: {
     flex: 1,
     alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 10,
+    padding: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 4,
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 6,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   tabsContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
+    borderBottomColor: '#E5E7EB',
+    paddingHorizontal: 20,
   },
   tab: {
     flex: 1,
     paddingVertical: 16,
     alignItems: 'center',
-    borderBottomWidth: 2,
+    borderBottomWidth: 3,
     borderBottomColor: 'transparent',
   },
   tabActive: {
     borderBottomColor: '#782F40',
   },
   tabText: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 15,
+    color: '#6B7280',
     fontWeight: '500',
   },
   tabTextActive: {
     color: '#782F40',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   itemsContainer: {
-    padding: 16,
+    padding: 20,
+    gap: 16,
   },
   itemCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    marginBottom: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   itemImage: {
     width: '100%',
-    height: 150,
-    backgroundColor: '#f0f0f0',
+    height: 180,
+    backgroundColor: '#F3F4F6',
   },
   itemContent: {
-    padding: 12,
+    padding: 16,
   },
   itemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 8,
+    gap: 12,
   },
   itemTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: '#111827',
     flex: 1,
+    lineHeight: 24,
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    marginLeft: 8,
   },
   statusOpen: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#D1FAE5',
   },
   statusClaimed: {
     backgroundColor: '#FEF3C7',
@@ -547,41 +581,58 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEE2E2',
   },
   statusText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: '#111827',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   itemTypeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
     marginBottom: 8,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
   },
   itemTypeText: {
     fontSize: 12,
-    color: '#666',
+    color: '#6B7280',
+    fontWeight: '500',
     textTransform: 'capitalize',
   },
   itemDescription: {
     fontSize: 14,
-    color: '#666',
+    color: '#6B7280',
+    lineHeight: 20,
   },
   emptyState: {
     alignItems: 'center',
-    padding: 40,
-    marginTop: 40,
+    padding: 48,
+    marginTop: 32,
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    color: '#666',
-    marginTop: 16,
+    color: '#111827',
+    marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#999',
-    marginTop: 4,
+    color: '#6B7280',
+    textAlign: 'center',
   },
   loginButton: {
     backgroundColor: '#782F40',
@@ -601,11 +652,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: '#fff',
-    margin: 16,
+    margin: 20,
     padding: 16,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#EF4444',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#FEE2E2',
   },
   logoutButtonText: {
     color: '#EF4444',

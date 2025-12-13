@@ -61,6 +61,18 @@ export default function BottomNav() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
 
+  // Normalize paths: remove route groups like (tabs), collapse slashes, trim trailing slash
+  const normalize = (path: string) => {
+    const stripped = (path || '').replace(/\([^/]+\)/g, '');
+    // collapse multiple slashes
+    let p = stripped.replace(/\/+/, '/');
+    // ensure starts with '/'
+    if (!p.startsWith('/')) p = `/${p}`;
+    // trim trailing slash except root
+    if (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
+    return p;
+  };
+
   useEffect(() => {
     const checkAdmin = async () => {
       if (!session) {
@@ -93,18 +105,14 @@ export default function BottomNav() {
     isAdminPage;
 
   const isActive = (route: string) => {
-    // Normalize pathname for comparison
-    const normalizedPath = pathname || '';
-    
-    if (route === '/(tabs)/home') {
-      return normalizedPath === '/(tabs)/home' || 
-             normalizedPath === '/' || 
-             normalizedPath === '/(tabs)/index' ||
-             normalizedPath === '/(tabs)';
+    const current = normalize(pathname || '');
+    const target = normalize(route);
+
+    // Home can be represented by '/' or '/home'
+    if (target === '/home') {
+      return current === '/' || current === '/home';
     }
-    
-    // For other routes, check if pathname starts with the route
-    return normalizedPath.startsWith(route);
+    return current === target || current.startsWith(`${target}/`);
   };
 
   if (hideNav) {

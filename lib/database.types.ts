@@ -169,9 +169,9 @@ export type Database = {
     }
     Enums: {
       hub_name:
-        | "Main Library Hub"
-        | "Student Center Hub"
-        | "Campus Services Hub"
+        | "Strozier Library"
+        | "Student Union"
+        | "Dirac Library"
       item_status: "open" | "claimed" | "closed"
       item_type: "lost" | "found"
       user_role: "student" | "admin"
@@ -303,9 +303,9 @@ export const Constants = {
   public: {
     Enums: {
       hub_name: [
-        "Main Library Hub",
-        "Student Center Hub",
-        "Campus Services Hub",
+        "Strozier Library",
+        "Student Union",
+        "Dirac Library",
       ],
       item_status: ["open", "claimed", "closed"],
       item_type: ["lost", "found"],

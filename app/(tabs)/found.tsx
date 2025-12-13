@@ -1,18 +1,14 @@
 import Page from '@/components/Page';
 import Field from '@/components/TextField';
-import {
-  claimItem,
-  createItem,
-  getItemImageUrl,
-  getItems,
-} from '@/lib/api';
+import { claimItem, createItem, getItemImageUrl, getItems } from '@/lib/api';
 import type { Tables } from '@/lib/database.types';
 import { useAuth } from '@/lib/session';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -51,15 +47,25 @@ function FoundItemCard({
   }, [item.image_path]);
 
   return (
-    <TouchableOpacity style={styles.itemCard} onPress={onPress}>
-      {imageUrl && (
-        <Image source={{ uri: imageUrl }} style={styles.itemImage} resizeMode="cover" />
+    <View style={styles.itemCard}>
+      {imageUrl ? (
+        <Image
+          source={{ uri: imageUrl }}
+          style={styles.itemImage}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={styles.itemImagePlaceholder}>
+          <Ionicons name="image-outline" size={40} color="#D1D5DB" />
+        </View>
       )}
       <View style={styles.itemContent}>
         <View style={styles.itemHeader}>
-          <Text style={styles.itemTitle} numberOfLines={1}>
-            {item.title}
-          </Text>
+          <View style={styles.itemTitleContainer}>
+            <Text style={styles.itemTitle} numberOfLines={2}>
+              {item.title}
+            </Text>
+          </View>
           <View
             style={[
               styles.statusBadge,
@@ -71,37 +77,42 @@ function FoundItemCard({
             <Text style={styles.statusText}>{item.status}</Text>
           </View>
         </View>
+
         {item.description && (
           <Text style={styles.itemDescription} numberOfLines={2}>
             {item.description}
           </Text>
         )}
+
         <View style={styles.itemFooter}>
           {item.hub && (
             <View style={[styles.itemMeta, styles.hubMeta]}>
               <Ionicons name="storefront" size={14} color="#10B981" />
-              <Text style={[styles.itemMetaText, styles.hubMetaText]}>{item.hub}</Text>
+              <Text style={[styles.itemMetaText, styles.hubMetaText]}>
+                {item.hub}
+              </Text>
             </View>
           )}
           {item.location && (
             <View style={styles.itemMeta}>
-              <Ionicons name="location" size={14} color="#666" />
+              <Ionicons name="location" size={14} color="#6B7280" />
               <Text style={styles.itemMetaText}>{item.location}</Text>
             </View>
           )}
           {item.color && (
             <View style={styles.itemMeta}>
-              <Ionicons name="color-palette" size={14} color="#666" />
+              <Ionicons name="color-palette" size={14} color="#6B7280" />
               <Text style={styles.itemMetaText}>{item.color}</Text>
             </View>
           )}
           {item.profiles?.full_name && (
             <View style={styles.itemMeta}>
-              <Ionicons name="person" size={14} color="#666" />
+              <Ionicons name="person" size={14} color="#6B7280" />
               <Text style={styles.itemMetaText}>{item.profiles.full_name}</Text>
             </View>
           )}
         </View>
+
         {item.status === 'open' && session && (
           <TouchableOpacity
             style={styles.claimButton}
@@ -109,12 +120,14 @@ function FoundItemCard({
               e.stopPropagation();
               onPress();
             }}
+            activeOpacity={0.8}
           >
+            <Ionicons name="checkmark-circle" size={18} color="#fff" />
             <Text style={styles.claimButtonText}>Claim This Item</Text>
           </TouchableOpacity>
         )}
       </View>
-    </TouchableOpacity>
+    </View>
   );
 }
 
@@ -122,13 +135,16 @@ export default function FoundItemsScreen() {
   const { session } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
   const [items, setItems] = useState<ItemWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'open' | 'claimed'>('all');
+
   const [selectedItem, setSelectedItem] = useState<ItemWithProfile | null>(null);
   const [claimModalVisible, setClaimModalVisible] = useState(false);
   const [claiming, setClaiming] = useState(false);
+
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -138,26 +154,40 @@ export default function FoundItemsScreen() {
   const [color, setColor] = useState('');
   const [location, setLocation] = useState('');
   const [whenFound, setWhenFound] = useState('');
+
   const [showWhenFoundPicker, setShowWhenFoundPicker] = useState(false);
-  const [selectedHub, setSelectedHub] = useState<'Main Library Hub' | 'Student Center Hub' | 'Campus Services Hub' | null>(null);
-  const today = useMemo(() => new Date(), []);
-  const [pickerYear, setPickerYear] = useState<number>(new Date().getFullYear());
-  const [pickerMonth, setPickerMonth] = useState<number>(new Date().getMonth() + 1);
-  const [pickerDay, setPickerDay] = useState<number>(new Date().getDate());
+  const [selectedHub, setSelectedHub] = useState<
+    'Strozier Library' | 'Student Union' | 'Dirac Library' | null
+  >(null);
+
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [imageUri, setImageUri] = useState<string | null>(null);
-  
-  const hubs: Array<'Main Library Hub' | 'Student Center Hub' | 'Campus Services Hub'> = [
-    'Main Library Hub',
-    'Student Center Hub',
-    'Campus Services Hub',
-  ];
+
+  const hubs: Array<
+    'Strozier Library' | 'Student Union' | 'Dirac Library'
+  > = ['Strozier Library', 'Student Union', 'Dirac Library'];
+
+  // ✅ SAME FIX AS lost.tsx: close overlays on blur/unmount (iOS especially)
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        setShowWhenFoundPicker(false);
+        setClaimModalVisible(false);
+        setShowForm(false);
+      };
+    }, [])
+  );
+
+  // ✅ extra safety: if form closes, picker must close too
+  useEffect(() => {
+    if (!showForm) setShowWhenFoundPicker(false);
+  }, [showForm]);
 
   const loadItems = async () => {
     try {
       const filters: any = { type: 'found' };
-      if (filter !== 'all') {
-        filters.status = filter;
-      }
+      if (filter !== 'all') filters.status = filter;
+
       const data = await getItems(filters);
       setItems(data as ItemWithProfile[]);
     } catch (error) {
@@ -184,7 +214,6 @@ export default function FoundItemsScreen() {
     setClaiming(true);
     try {
       await claimItem(selectedItem.id);
-      // Notifications feature disabled
       Alert.alert('Success', 'Item claimed successfully!');
       setClaimModalVisible(false);
       setSelectedItem(null);
@@ -200,7 +229,10 @@ export default function FoundItemsScreen() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'We need camera roll permissions to upload images');
+      Alert.alert(
+        'Permission needed',
+        'We need camera roll permissions to upload images'
+      );
       return;
     }
 
@@ -243,6 +275,9 @@ export default function FoundItemsScreen() {
   };
 
   const resetForm = () => {
+    // ✅ ensure picker never survives
+    setShowWhenFoundPicker(false);
+
     setTitle('');
     setDescription('');
     setColor('');
@@ -253,21 +288,18 @@ export default function FoundItemsScreen() {
     setShowForm(false);
   };
 
-  // Date picker helpers
-  const pad2 = (n: number) => (n < 10 ? `0${n}` : `${n}`);
-  const daysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
-  const formatISODate = (y: number, m: number, d: number) => `${y}-${pad2(m)}-${pad2(d)}`;
-
+  // ✅ FIX: open picker on next frame so it appears on top reliably
   const openWhenFoundPicker = () => {
-    if (whenFound) {
-      const [y, m, d] = whenFound.split('-').map((v) => parseInt(v, 10));
-      if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
-        setPickerYear(y);
-        setPickerMonth(m);
-        setPickerDay(d);
-      }
-    }
-    setShowWhenFoundPicker(true);
+    if (whenFound) setSelectedDate(new Date(whenFound));
+    else setSelectedDate(new Date());
+
+    requestAnimationFrame(() => setShowWhenFoundPicker(true));
+  };
+
+  const handleDateConfirm = () => {
+    const isoDate = selectedDate.toISOString().split('T')[0];
+    setWhenFound(isoDate);
+    setShowWhenFoundPicker(false);
   };
 
   const handleSubmit = async () => {
@@ -297,6 +329,7 @@ export default function FoundItemsScreen() {
         },
         imageUri || undefined
       );
+
       Alert.alert('Success', 'Found item posted successfully!');
       resetForm();
       loadItems();
@@ -306,7 +339,6 @@ export default function FoundItemsScreen() {
       setSubmitting(false);
     }
   };
-
 
   if (loading) {
     return (
@@ -319,657 +351,607 @@ export default function FoundItemsScreen() {
 
   return (
     <Page>
-    <View style={styles.container}>
-      <StatusBar style="dark" />
-      <View style={styles.header}>
-        <Text style={styles.title}>Found Items</Text>
-        <Text style={styles.subtitle}>Items found by the community</Text>
-        {session && (
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setShowForm(true)}
-          >
-            <Ionicons name="add-circle" size={24} color="#fff" />
-            <Text style={styles.addButtonText}>Post Found Item</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      <View style={styles.container}>
+        <StatusBar style="dark" />
 
-      <View style={styles.filterContainer}>
-        <TouchableOpacity
-          style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
-          onPress={() => setFilter('all')}
-        >
-          <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
-            All
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterButton, filter === 'open' && styles.filterButtonActive]}
-          onPress={() => setFilter('open')}
-        >
-          <Text style={[styles.filterText, filter === 'open' && styles.filterTextActive]}>
-            Open
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterButton, filter === 'claimed' && styles.filterButtonActive]}
-          onPress={() => setFilter('claimed')}
-        >
-          <Text style={[styles.filterText, filter === 'claimed' && styles.filterTextActive]}>
-            Claimed
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      >
-        {items.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Ionicons name="search" size={48} color="#ccc" />
-            <Text style={styles.emptyText}>No found items</Text>
-            <Text style={styles.emptySubtext}>Check back later!</Text>
-          </View>
-        ) : (
-          items.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              onPress={() => router.push(`/(tabs)/item/${item.id}`)}
-              activeOpacity={0.7}
-            >
-              <FoundItemCard
-                item={item}
-                session={session}
-                onPress={() => {
-                  setSelectedItem(item);
-                  setClaimModalVisible(true);
-                }}
-              />
-            </TouchableOpacity>
-          ))
-        )}
-      </ScrollView>
-
-      <Modal
-        visible={claimModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setClaimModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {selectedItem && (
-              <>
-                <Text style={styles.modalTitle}>Claim Item</Text>
-                <Text style={styles.modalItemTitle}>{selectedItem.title}</Text>
-                {selectedItem.description && (
-                  <Text style={styles.modalDescription}>{selectedItem.description}</Text>
-                )}
-                <View style={styles.modalDetails}>
-                  {selectedItem.location && (
-                    <Text style={styles.modalDetailText}>
-                      <Ionicons name="location" size={16} /> {selectedItem.location}
-                    </Text>
-                  )}
-                  {selectedItem.color && (
-                    <Text style={styles.modalDetailText}>
-                      <Ionicons name="color-palette" size={16} /> {selectedItem.color}
-                    </Text>
-                  )}
-                </View>
-                <Text style={styles.modalQuestion}>
-                  Is this your item? Claiming will notify the finder.
-                </Text>
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.modalButtonCancel]}
-                    onPress={() => setClaimModalVisible(false)}
-                  >
-                    <Text style={styles.modalButtonTextCancel}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.modalButtonConfirm]}
-                    onPress={handleClaim}
-                    disabled={claiming}
-                  >
-                    {claiming ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={styles.modalButtonTextConfirm}>Claim</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Post Found Item Form Modal */}
-      <Modal
-        visible={showForm}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={resetForm}
-      >
-        <KeyboardAvoidingView
-          style={styles.formModalContainer}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-        >
-          <View style={[styles.formModalHeader, { paddingTop: insets.top + 16 }]}>
-            <View style={styles.formModalHeaderContent}>
-              <View style={styles.formModalTitleContainer}>
-                <Ionicons name="checkmark-circle" size={28} color="#10B981" />
-                <Text style={styles.formModalTitle}>Post Found Item</Text>
-              </View>
-              <TouchableOpacity
-                onPress={resetForm}
-                style={styles.formCloseButton}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name="close-circle" size={32} color="#666" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.formModalSubtitle}>
-              Help reunite items with their owners
-            </Text>
-          </View>
-
-          <ScrollView
-            style={styles.formModalContent}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.formModalContentContainer}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Image Section */}
-            <View style={styles.formSection}>
-              <View style={styles.formSectionTitleContainer}>
-                <Ionicons name="image" size={18} color="#10B981" />
-                <Text style={styles.formSectionTitle}>Photo</Text>
-              </View>
-              <Text style={styles.formSectionSubtitle}>
-                Add a photo to help identify the item
+        {/* Header */}
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={styles.title}>Found Items</Text>
+              <Text style={styles.subtitle}>
+                {items.length} item{items.length !== 1 ? 's' : ''} found
               </Text>
-
-              {imageUri ? (
-                <View style={styles.imagePreviewContainer}>
-                  <Image source={{ uri: imageUri }} style={styles.previewImage} />
-                  <View style={styles.imageActions}>
-                    <TouchableOpacity
-                      style={styles.imageActionButton}
-                      onPress={showImagePicker}
-                    >
-                      <Ionicons name="camera" size={18} color="#10B981" />
-                      <Text style={styles.imageActionText}>Change</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.imageActionButton, styles.removeButton]}
-                      onPress={() => setImageUri(null)}
-                    >
-                      <Ionicons name="trash" size={18} color="#EF4444" />
-                      <Text style={[styles.imageActionText, styles.removeButtonText]}>
-                        Remove
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  style={styles.imagePickerButton}
-                  onPress={showImagePicker}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.imagePickerIconContainer}>
-                    <Ionicons name="camera-outline" size={32} color="#10B981" />
-                  </View>
-                  <Text style={styles.imagePickerText}>Add Photo</Text>
-                  <Text style={styles.imagePickerSubtext}>
-                    Optional - Tap to add from camera or gallery
-                  </Text>
-                </TouchableOpacity>
-              )}
             </View>
-
-            {/* Basic Information */}
-            <View style={styles.formSection}>
-              <View style={styles.formSectionTitleContainer}>
-                <Ionicons name="information-circle" size={18} color="#10B981" />
-                <Text style={styles.formSectionTitle}>Basic Information</Text>
-              </View>
-
-              <Field
-                label="Item Title"
-                placeholder="e.g., Black Wallet, iPhone 13"
-                value={title}
-                onChangeText={setTitle}
-                autoCapitalize="words"
-                icon="pricetag"
-              />
-
-              <Field
-                label="Description"
-                placeholder="Describe the item you found..."
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                numberOfLines={4}
-                style={styles.textArea}
-                icon="text"
-              />
-            </View>
-
-            {/* Additional Details */}
-            <View style={styles.formSection}>
-              <View style={styles.formSectionTitleContainer}>
-                <Ionicons name="list" size={18} color="#10B981" />
-                <Text style={styles.formSectionTitle}>Additional Details</Text>
-              </View>
-              <Text style={styles.formSectionSubtitle}>
-                These details help owners identify their item
-              </Text>
-
-              <Field
-                label="Color"
-                placeholder="e.g., Red, Blue, Black"
-                value={color}
-                onChangeText={setColor}
-                icon="color-palette"
-              />
-
-              <Field
-                label="Location Found"
-                placeholder="Where did you find it?"
-                value={location}
-                onChangeText={setLocation}
-                icon="location"
-              />
-
+            {session && (
               <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={openWhenFoundPicker}
-              >
-                <Field
-                  label="When Found"
-                  placeholder="Select date"
-                  value={whenFound ? new Date(whenFound).toLocaleDateString() : ''}
-                  editable={false}
-                  icon="calendar"
-                  rightAccessory={
-                    <Ionicons name="chevron-down" size={18} color="#6B7280" />
-                  }
-                />
-              </TouchableOpacity>
-
-              {/* Hub Selection */}
-              <View style={styles.hubSection}>
-                <View style={styles.formSectionTitleContainer}>
-                  <Ionicons name="storefront" size={18} color="#10B981" />
-                  <Text style={styles.formSectionTitle}>Return Hub</Text>
-                </View>
-                <Text style={styles.formSectionSubtitle}>
-                  Select which hub you returned this item to
-                </Text>
-                <View style={styles.hubOptions}>
-                  {hubs.map((hub) => (
-                    <TouchableOpacity
-                      key={hub}
-                      style={[
-                        styles.hubOption,
-                        selectedHub === hub && styles.hubOptionSelected,
-                      ]}
-                      onPress={() => setSelectedHub(hub)}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons
-                        name={selectedHub === hub ? 'radio-button-on' : 'radio-button-off'}
-                        size={20}
-                        color={selectedHub === hub ? '#10B981' : '#9CA3AF'}
-                      />
-                      <Text
-                        style={[
-                          styles.hubOptionText,
-                          selectedHub === hub && styles.hubOptionTextSelected,
-                        ]}
-                      >
-                        {hub}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            </View>
-
-            {/* Submit Button */}
-            <View style={styles.submitContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.submitButton,
-                  (submitting || !title.trim()) && styles.submitButtonDisabled,
-                ]}
-                onPress={handleSubmit}
-                disabled={submitting || !title.trim()}
+                style={styles.addButton}
+                onPress={() => setShowForm(true)}
                 activeOpacity={0.8}
               >
-                {submitting ? (
-                  <>
-                    <ActivityIndicator size="small" color="#fff" style={styles.submitLoader} />
-                    <Text style={styles.submitButtonText}>Posting...</Text>
-                  </>
-                ) : (
-                  <>
-                    <Ionicons name="checkmark-circle" size={20} color="#fff" />
-                    <Text style={styles.submitButtonText}>Post Found Item</Text>
-                  </>
-                )}
+                <Ionicons name="add" size={20} color="#fff" />
               </TouchableOpacity>
-              <Text style={styles.requiredNote}>
-                * Required fields must be filled
+            )}
+          </View>
+
+          {/* Filter Tabs */}
+          <View style={styles.filterContainer}>
+            <TouchableOpacity
+              style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
+              onPress={() => setFilter('all')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
+                All
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.filterButton, filter === 'open' && styles.filterButtonActive]}
+              onPress={() => setFilter('open')}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.filterText, filter === 'open' && styles.filterTextActive]}>
+                Open
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.filterButton, filter === 'claimed' && styles.filterButtonActive]}
+              onPress={() => setFilter('claimed')}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[
+                  styles.filterText,
+                  filter === 'claimed' && styles.filterTextActive,
+                ]}
+              >
+                Claimed
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          showsVerticalScrollIndicator={false}
+        >
+          {items.length === 0 ? (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="checkmark-circle-outline" size={64} color="#D1D5DB" />
+              </View>
+              <Text style={styles.emptyText}>No found items</Text>
+              <Text style={styles.emptySubtext}>
+                {session ? 'Be the first to post a found item!' : 'Check back later!'}
               </Text>
             </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </Modal>
+          ) : (
+            <View style={styles.itemsContainer}>
+              {items.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  onPress={() => router.push(`/(tabs)/item/${item.id}`)}
+                  activeOpacity={0.7}
+                >
+                  <FoundItemCard
+                    item={item}
+                    session={session}
+                    onPress={() => {
+                      setSelectedItem(item);
+                      setClaimModalVisible(true);
+                    }}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </ScrollView>
 
-      {/* Date Picker Modal */}
-      {showWhenFoundPicker && (
+        {/* Claim Modal */}
         <Modal
-          visible
+          visible={claimModalVisible}
           animationType="slide"
           transparent
-          onRequestClose={() => setShowWhenFoundPicker(false)}
+          onRequestClose={() => setClaimModalVisible(false)}
         >
-          <View style={styles.dateModalBackdrop}>
-            <TouchableOpacity
-              style={styles.dateModalBackdropTouchable}
-              activeOpacity={1}
-              onPress={() => setShowWhenFoundPicker(false)}
-            />
-            <View style={styles.dateModalCard}>
-              <View style={styles.dateModalHeader}>
-                <Text style={styles.dateModalTitle}>Select Date Found</Text>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              {selectedItem && (
+                <>
+                  <Text style={styles.modalTitle}>Claim Item</Text>
+                  <Text style={styles.modalItemTitle}>{selectedItem.title}</Text>
+
+                  {selectedItem.description && (
+                    <Text style={styles.modalDescription}>{selectedItem.description}</Text>
+                  )}
+
+                  <View style={styles.modalDetails}>
+                    {selectedItem.location && (
+                      <Text style={styles.modalDetailText}>
+                        <Ionicons name="location" size={16} /> {selectedItem.location}
+                      </Text>
+                    )}
+                    {selectedItem.color && (
+                      <Text style={styles.modalDetailText}>
+                        <Ionicons name="color-palette" size={16} /> {selectedItem.color}
+                      </Text>
+                    )}
+                  </View>
+
+                  <Text style={styles.modalQuestion}>
+                    Is this your item? Claiming will notify the finder.
+                  </Text>
+
+                  <View style={styles.modalButtons}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.modalButtonCancel]}
+                      onPress={() => setClaimModalVisible(false)}
+                    >
+                      <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.modalButton, styles.modalButtonConfirm]}
+                      onPress={handleClaim}
+                      disabled={claiming}
+                    >
+                      {claiming ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={styles.modalButtonTextConfirm}>Claim</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
+
+        {/* Post Found Item Form Modal */}
+        <Modal visible={showForm} animationType="slide" transparent={false} onRequestClose={resetForm}>
+          <KeyboardAvoidingView
+            style={styles.formModalContainer}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+          >
+            <View style={[styles.formModalHeader, { paddingTop: insets.top + 16 }]}>
+              <View style={styles.formModalHeaderContent}>
+                <View style={styles.formModalTitleContainer}>
+                  <View style={styles.formModalIconContainer}>
+                    <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+                  </View>
+                  <View>
+                    <Text style={styles.formModalTitle}>Post Found Item</Text>
+                    <Text style={styles.formModalSubtitle}>Help reunite items with their owners</Text>
+                  </View>
+                </View>
                 <TouchableOpacity
-                  onPress={() => setShowWhenFoundPicker(false)}
+                  onPress={resetForm}
+                  style={styles.formCloseButton}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <Ionicons name="close" size={24} color="#6B7280" />
                 </TouchableOpacity>
               </View>
-
-              <View style={styles.datePickerContainer}>
-                {/* Year Picker */}
-                <View style={styles.datePickerColumn}>
-                  <Text style={styles.datePickerLabel}>Year</Text>
-                  <ScrollView
-                    style={styles.datePickerScroll}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.datePickerContent}
-                  >
-                    {Array.from({ length: 10 }, (_, i) => {
-                      const year = today.getFullYear() - i;
-                      const isSelected = pickerYear === year;
-                      return (
-                        <TouchableOpacity
-                          key={year}
-                          style={[
-                            styles.datePickerOption,
-                            isSelected && styles.datePickerOptionSelected,
-                          ]}
-                          onPress={() => setPickerYear(year)}
-                        >
-                          <Text
-                            style={[
-                              styles.datePickerOptionText,
-                              isSelected && styles.datePickerOptionTextSelected,
-                            ]}
-                          >
-                            {year}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-
-                {/* Month Picker */}
-                <View style={styles.datePickerColumn}>
-                  <Text style={styles.datePickerLabel}>Month</Text>
-                  <ScrollView
-                    style={styles.datePickerScroll}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.datePickerContent}
-                  >
-                    {Array.from({ length: 12 }, (_, i) => {
-                      const month = i + 1;
-                      const isSelected = pickerMonth === month;
-                      const monthName = new Date(2000, i, 1).toLocaleDateString('en-US', {
-                        month: 'short',
-                      });
-                      return (
-                        <TouchableOpacity
-                          key={month}
-                          style={[
-                            styles.datePickerOption,
-                            isSelected && styles.datePickerOptionSelected,
-                          ]}
-                          onPress={() => {
-                            setPickerMonth(month);
-                            const maxDay = daysInMonth(pickerYear, month);
-                            if (pickerDay > maxDay) {
-                              setPickerDay(maxDay);
-                            }
-                          }}
-                        >
-                          <Text
-                            style={[
-                              styles.datePickerOptionText,
-                              isSelected && styles.datePickerOptionTextSelected,
-                            ]}
-                          >
-                            {monthName}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-
-                {/* Day Picker */}
-                <View style={styles.datePickerColumn}>
-                  <Text style={styles.datePickerLabel}>Day</Text>
-                  <ScrollView
-                    style={styles.datePickerScroll}
-                    showsVerticalScrollIndicator={false}
-                    contentContainerStyle={styles.datePickerContent}
-                  >
-                    {Array.from({ length: daysInMonth(pickerYear, pickerMonth) }, (_, i) => {
-                      const day = i + 1;
-                      const isSelected = pickerDay === day;
-                      return (
-                        <TouchableOpacity
-                          key={day}
-                          style={[
-                            styles.datePickerOption,
-                            isSelected && styles.datePickerOptionSelected,
-                          ]}
-                          onPress={() => setPickerDay(day)}
-                        >
-                          <Text
-                            style={[
-                              styles.datePickerOptionText,
-                              isSelected && styles.datePickerOptionTextSelected,
-                            ]}
-                          >
-                            {day}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                </View>
-              </View>
-
-              <View style={styles.dateActions}>
-                <TouchableOpacity
-                  style={[styles.dateActionBtn, styles.dateCancelBtn]}
-                  onPress={() => setShowWhenFoundPicker(false)}
-                >
-                  <Text style={[styles.dateActionText, styles.dateCancelText]}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.dateActionBtn, styles.dateConfirmBtn]}
-                  onPress={() => {
-                    const iso = formatISODate(pickerYear, pickerMonth, pickerDay);
-                    setWhenFound(iso);
-                    setShowWhenFoundPicker(false);
-                  }}
-                >
-                  <Text style={[styles.dateActionText, styles.dateConfirmText]}>Done</Text>
-                </TouchableOpacity>
-              </View>
             </View>
-          </View>
+
+            <ScrollView
+              style={styles.formModalContent}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.formModalContentContainer}
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* Image Section */}
+              <View style={styles.formSection}>
+                <View style={styles.formSectionTitleContainer}>
+                  <Ionicons name="image" size={18} color="#10B981" />
+                  <Text style={styles.formSectionTitle}>Photo</Text>
+                </View>
+                <Text style={styles.formSectionSubtitle}>Add a photo to help identify the item</Text>
+
+                {imageUri ? (
+                  <View style={styles.imagePreviewContainer}>
+                    <Image source={{ uri: imageUri }} style={styles.previewImage} />
+                    <View style={styles.imageActions}>
+                      <TouchableOpacity style={styles.imageActionButton} onPress={showImagePicker}>
+                        <Ionicons name="camera" size={18} color="#10B981" />
+                        <Text style={styles.imageActionText}>Change</Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.imageActionButton, styles.removeButton]}
+                        onPress={() => setImageUri(null)}
+                      >
+                        <Ionicons name="trash" size={18} color="#EF4444" />
+                        <Text style={[styles.imageActionText, styles.removeButtonText]}>
+                          Remove
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.imagePickerButton}
+                    onPress={showImagePicker}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.imagePickerIconContainer}>
+                      <Ionicons name="camera-outline" size={32} color="#10B981" />
+                    </View>
+                    <Text style={styles.imagePickerText}>Add Photo</Text>
+                    <Text style={styles.imagePickerSubtext}>
+                      Optional - Tap to add from camera or gallery
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Basic Information */}
+              <View style={styles.formSection}>
+                <View style={styles.formSectionTitleContainer}>
+                  <Ionicons name="information-circle" size={18} color="#10B981" />
+                  <Text style={styles.formSectionTitle}>Basic Information</Text>
+                </View>
+
+                <Field
+                  label="Item Title"
+                  placeholder="e.g., Black Wallet, iPhone 13"
+                  value={title}
+                  onChangeText={setTitle}
+                  autoCapitalize="words"
+                  icon="pricetag"
+                />
+
+                <Field
+                  label="Description"
+                  placeholder="Describe the item you found..."
+                  value={description}
+                  onChangeText={setDescription}
+                  multiline
+                  numberOfLines={4}
+                  style={styles.textArea}
+                  icon="text"
+                />
+              </View>
+
+              {/* Additional Details */}
+              <View style={styles.formSection}>
+                <View style={styles.formSectionTitleContainer}>
+                  <Ionicons name="list" size={18} color="#10B981" />
+                  <Text style={styles.formSectionTitle}>Additional Details</Text>
+                </View>
+                <Text style={styles.formSectionSubtitle}>
+                  These details help owners identify their item
+                </Text>
+
+                <Field
+                  label="Color"
+                  placeholder="e.g., Red, Blue, Black"
+                  value={color}
+                  onChangeText={setColor}
+                  icon="color-palette"
+                />
+
+                <Field
+                  label="Location Found"
+                  placeholder="Where did you find it?"
+                  value={location}
+                  onChangeText={setLocation}
+                  icon="location"
+                />
+
+                <TouchableOpacity activeOpacity={0.7} onPress={openWhenFoundPicker}>
+                  <Field
+                    label="When Found"
+                    placeholder="Select date"
+                    value={whenFound ? new Date(whenFound).toLocaleDateString() : ''}
+                    editable={false}
+                    icon="calendar"
+                    rightAccessory={<Ionicons name="chevron-down" size={18} color="#6B7280" />}
+                  />
+                </TouchableOpacity>
+
+                {/* Hub Selection */}
+                <View style={styles.hubSection}>
+                  <View style={styles.formSectionTitleContainer}>
+                    <Ionicons name="storefront" size={18} color="#10B981" />
+                    <Text style={styles.formSectionTitle}>Hub</Text>
+                  </View>
+                  <Text style={styles.formSectionSubtitle}>
+                    Select which hub you returned this item to
+                  </Text>
+
+                  <View style={styles.hubOptions}>
+                    {hubs.map((hub) => (
+                      <TouchableOpacity
+                        key={hub}
+                        style={[styles.hubOption, selectedHub === hub && styles.hubOptionSelected]}
+                        onPress={() => setSelectedHub(hub)}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name={selectedHub === hub ? 'radio-button-on' : 'radio-button-off'}
+                          size={20}
+                          color={selectedHub === hub ? '#10B981' : '#9CA3AF'}
+                        />
+                        <Text
+                          style={[
+                            styles.hubOptionText,
+                            selectedHub === hub && styles.hubOptionTextSelected,
+                          ]}
+                        >
+                          {hub}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+
+              {/* Submit Button */}
+              <View style={styles.submitContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.submitButton,
+                    (submitting || !title.trim()) && styles.submitButtonDisabled,
+                  ]}
+                  onPress={handleSubmit}
+                  disabled={submitting || !title.trim()}
+                  activeOpacity={0.8}
+                >
+                  {submitting ? (
+                    <>
+                      <ActivityIndicator size="small" color="#fff" style={styles.submitLoader} />
+                      <Text style={styles.submitButtonText}>Posting...</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-circle" size={20} color="#fff" />
+                      <Text style={styles.submitButtonText}>Post Found Item</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+                <Text style={styles.requiredNote}>* Required fields must be filled</Text>
+              </View>
+            </ScrollView>
+
+            {/* ✅ Date Picker Overlay INSIDE the form modal (not a nested Modal) */}
+            {showWhenFoundPicker && (
+              <View style={styles.datePickerOverlay}>
+                <TouchableOpacity
+                  style={styles.datePickerBackdrop}
+                  activeOpacity={1}
+                  onPress={() => setShowWhenFoundPicker(false)}
+                />
+                <View style={styles.dateModalCard}>
+                  <View style={styles.dateModalHeader}>
+                    <Text style={styles.dateModalTitle}>Select Date Found</Text>
+                    <TouchableOpacity
+                      onPress={() => setShowWhenFoundPicker(false)}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Ionicons name="close" size={24} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.datePickerWrapper}>
+                    <DateTimePicker
+                      value={selectedDate}
+                      mode="date"
+                      maximumDate={new Date()}
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      themeVariant="light"
+                      textColor="#111827"
+                      onChange={(event: any, date?: Date) => {
+                        if (Platform.OS === 'android') {
+                          setShowWhenFoundPicker(false);
+                          if (event.type === 'set' && date) {
+                            setSelectedDate(date);
+                            setWhenFound(date.toISOString().split('T')[0]);
+                          }
+                          return;
+                        }
+
+                        // iOS
+                        if (date) setSelectedDate(date);
+                        if (event.type === 'dismissed') setShowWhenFoundPicker(false);
+                      }}
+                    />
+                  </View>
+
+                  {Platform.OS === 'ios' && (
+                    <View style={styles.dateActions}>
+                      <TouchableOpacity
+                        style={[styles.dateActionBtn, styles.dateCancelBtn]}
+                        onPress={() => setShowWhenFoundPicker(false)}
+                      >
+                        <Text style={[styles.dateActionText, styles.dateCancelText]}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.dateActionBtn, styles.dateConfirmBtn]}
+                        onPress={handleDateConfirm}
+                      >
+                        <Text style={[styles.dateActionText, styles.dateConfirmText]}>Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
+          </KeyboardAvoidingView>
         </Modal>
-      )}
-    </View>
+      </View>
     </Page>
   );
 }
 
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
+  container: { flex: 1, backgroundColor: '#F9FAFB' },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F9FAFB',
   },
   header: {
-    padding: 20,
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#111827',
+    letterSpacing: -0.5,
     marginBottom: 4,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  addButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   filterContainer: {
     flexDirection: 'row',
-    padding: 16,
     gap: 8,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
+    marginTop: 8,
   },
   filterButton: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   filterButtonActive: {
-    backgroundColor: '#782F40',
+    backgroundColor: '#10B981',
+    borderColor: '#10B981',
   },
   filterText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: '#6B7280',
   },
   filterTextActive: {
     color: '#fff',
   },
-  scrollView: {
-    flex: 1,
+  scrollView: { flex: 1 },
+  itemsContainer: {
+    padding: 16,
+    gap: 16,
   },
   itemCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    margin: 16,
-    marginBottom: 0,
+    borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   itemImage: {
     width: '100%',
     height: 200,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#F3F4F6',
+  },
+  itemImagePlaceholder: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   itemContent: {
-    padding: 12,
+    padding: 16,
   },
   itemHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 8,
+    gap: 12,
+  },
+  itemTitleContainer: {
+    flex: 1,
   },
   itemTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1a1a1a',
-    flex: 1,
+    color: '#111827',
+    lineHeight: 24,
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
-    marginLeft: 8,
   },
-  statusOpen: {
-    backgroundColor: '#DCFCE7',
-  },
-  statusClaimed: {
-    backgroundColor: '#FEF3C7',
-  },
-  statusClosed: {
-    backgroundColor: '#FEE2E2',
-  },
+  statusOpen: { backgroundColor: '#D1FAE5' },
+  statusClaimed: { backgroundColor: '#FEF3C7' },
+  statusClosed: { backgroundColor: '#FEE2E2' },
   statusText: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '600',
-    color: '#1a1a1a',
+    color: '#111827',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   itemDescription: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    color: '#6B7280',
+    marginBottom: 12,
+    lineHeight: 20,
   },
   itemFooter: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 16,
     marginBottom: 8,
   },
   itemMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   itemMetaText: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
   },
   hubMeta: {
     backgroundColor: '#D1FAE5',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 8,
   },
   hubMetaText: {
@@ -977,120 +959,72 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   claimButton: {
-    backgroundColor: '#10B981',
-    paddingVertical: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  claimButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  emptyState: {
-    alignItems: 'center',
-    padding: 40,
-    marginTop: 40,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#666',
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 4,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 24,
-    width: '90%',
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 16,
-  },
-  modalItemTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 8,
-  },
-  modalDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
-  },
-  modalDetails: {
-    marginBottom: 16,
-  },
-  modalDetailText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-  },
-  modalQuestion: {
-    fontSize: 14,
-    color: '#1a1a1a',
-    marginBottom: 20,
-    fontWeight: '500',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  modalButtonCancel: {
-    backgroundColor: '#f0f0f0',
-  },
-  modalButtonConfirm: {
-    backgroundColor: '#10B981',
-  },
-  modalButtonTextCancel: {
-    color: '#1a1a1a',
-    fontWeight: '600',
-  },
-  modalButtonTextConfirm: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#10B981',
     paddingVertical: 12,
     borderRadius: 10,
+    marginTop: 12,
     gap: 8,
-    marginTop: 16,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  addButtonText: {
+  claimButtonText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 16,
+    fontSize: 15,
   },
-  formModalContainer: {
+  emptyState: {
+    alignItems: 'center',
+    padding: 48,
+    marginTop: 64,
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  emptyText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+
+  modalOverlay: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
+  modalContent: { backgroundColor: '#fff', borderRadius: 16, padding: 24, width: '90%', maxWidth: 400 },
+  modalTitle: { fontSize: 24, fontWeight: 'bold', color: '#1a1a1a', marginBottom: 16 },
+  modalItemTitle: { fontSize: 20, fontWeight: '600', color: '#1a1a1a', marginBottom: 8 },
+  modalDescription: { fontSize: 14, color: '#666', marginBottom: 16 },
+  modalDetails: { marginBottom: 16 },
+  modalDetailText: { fontSize: 14, color: '#666', marginBottom: 4 },
+  modalQuestion: { fontSize: 14, color: '#1a1a1a', marginBottom: 20, fontWeight: '500' },
+  modalButtons: { flexDirection: 'row', gap: 12 },
+  modalButton: { flex: 1, paddingVertical: 12, borderRadius: 8, alignItems: 'center' },
+  modalButtonCancel: { backgroundColor: '#f0f0f0' },
+  modalButtonConfirm: { backgroundColor: '#10B981' },
+  modalButtonTextCancel: { color: '#1a1a1a', fontWeight: '600' },
+  modalButtonTextConfirm: { color: '#fff', fontWeight: '600' },
+
+  formModalContainer: { flex: 1, backgroundColor: '#F9FAFB' },
   formModalHeader: {
     backgroundColor: '#fff',
     borderBottomWidth: 1,
@@ -1112,57 +1046,38 @@ const styles = StyleSheet.create({
   formModalTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
     flex: 1,
   },
+  formModalIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   formModalTitle: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '700',
-    color: '#1F2937',
-    letterSpacing: -0.5,
+    color: '#111827',
+    marginBottom: 2,
   },
   formModalSubtitle: {
     fontSize: 14,
     color: '#6B7280',
-    marginTop: 4,
-    lineHeight: 20,
   },
-  formCloseButton: {
-    padding: 4,
-  },
-  formModalContent: {
-    flex: 1,
-  },
-  formModalContentContainer: {
-    padding: 20,
-    paddingBottom: 100,
-  },
-  formSection: {
-    marginBottom: 32,
-  },
-  formSectionTitleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  formSectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1F2937',
-    letterSpacing: -0.3,
-  },
-  formSectionSubtitle: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginBottom: 16,
-    lineHeight: 18,
-  },
-  textArea: {
-    minHeight: 120,
-    textAlignVertical: 'top',
-    paddingTop: 14,
-  },
+  formCloseButton: { padding: 4 },
+
+  formModalContent: { flex: 1 },
+  formModalContentContainer: { padding: 20, paddingBottom: 100 },
+  formSection: { marginBottom: 32 },
+  formSectionTitleContainer: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  formSectionTitle: { fontSize: 18, fontWeight: '700', color: '#1F2937', letterSpacing: -0.3 },
+  formSectionSubtitle: { fontSize: 13, color: '#6B7280', marginBottom: 16, lineHeight: 18 },
+
+  textArea: { minHeight: 120, textAlignVertical: 'top', paddingTop: 14 },
+
   imagePickerButton: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -1182,17 +1097,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  imagePickerText: {
-    color: '#1F2937',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  imagePickerSubtext: {
-    color: '#6B7280',
-    fontSize: 13,
-    textAlign: 'center',
-    marginTop: -4,
-  },
+  imagePickerText: { color: '#1F2937', fontWeight: '600', fontSize: 16 },
+  imagePickerSubtext: { color: '#6B7280', fontSize: 13, textAlign: 'center', marginTop: -4 },
+
   imagePreviewContainer: {
     borderRadius: 16,
     overflow: 'hidden',
@@ -1203,11 +1110,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  previewImage: {
-    width: '100%',
-    height: 240,
-    backgroundColor: '#F3F4F6',
-  },
+  previewImage: { width: '100%', height: 240, backgroundColor: '#F3F4F6' },
+
   imageActions: {
     flexDirection: 'row',
     padding: 12,
@@ -1226,21 +1130,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     gap: 6,
   },
-  removeButton: {
-    backgroundColor: '#FEF2F2',
-  },
-  imageActionText: {
-    color: '#10B981',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  removeButtonText: {
-    color: '#EF4444',
-  },
-  submitContainer: {
-    marginTop: 8,
-    marginBottom: 20,
-  },
+  removeButton: { backgroundColor: '#FEF2F2' },
+  imageActionText: { color: '#10B981', fontWeight: '600', fontSize: 14 },
+  removeButtonText: { color: '#EF4444' },
+
+  submitContainer: { marginTop: 8, marginBottom: 20 },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1255,34 +1149,30 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  submitButtonDisabled: {
-    backgroundColor: '#D1D5DB',
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  submitButtonText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 16,
-    letterSpacing: 0.3,
-  },
-  submitLoader: {
-    marginRight: 0,
-  },
-  requiredNote: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    marginTop: 12,
-  },
-  dateModalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+  submitButtonDisabled: { backgroundColor: '#D1D5DB', shadowOpacity: 0, elevation: 0 },
+  submitButtonText: { color: '#fff', fontWeight: '700', fontSize: 16, letterSpacing: 0.3 },
+  submitLoader: { marginRight: 0 },
+  requiredNote: { fontSize: 12, color: '#9CA3AF', textAlign: 'center', marginTop: 12 },
+
+  datePickerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1000,
     justifyContent: 'flex-end',
   },
-  dateModalBackdropTouchable: {
-    flex: 1,
+  datePickerBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
   },
+  dateModalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  dateModalBackdropTouchable: { flex: 1 },
   dateModalCard: {
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
@@ -1292,94 +1182,19 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     maxHeight: '70%',
   },
-  dateModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  dateModalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  datePickerContainer: {
-    flexDirection: 'row',
-    height: 200,
-    marginBottom: 20,
-    gap: 12,
-  },
-  datePickerColumn: {
-    flex: 1,
-  },
-  datePickerLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6B7280',
-    marginBottom: 8,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  datePickerScroll: {
-    flex: 1,
-  },
-  datePickerContent: {
-    paddingVertical: 60,
-  },
-  datePickerOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-    marginBottom: 4,
-    alignItems: 'center',
-  },
-  datePickerOptionSelected: {
-    backgroundColor: '#10B981',
-  },
-  datePickerOptionText: {
-    fontSize: 16,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  datePickerOptionTextSelected: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  dateActions: {
-    marginTop: 12,
-    flexDirection: 'row',
-    gap: 12,
-  },
-  dateActionBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dateCancelBtn: {
-    backgroundColor: '#F3F4F6',
-  },
-  dateConfirmBtn: {
-    backgroundColor: '#10B981',
-  },
-  dateActionText: {
-    fontWeight: '700',
-  },
-  dateCancelText: {
-    color: '#374151',
-  },
-  dateConfirmText: {
-    color: '#fff',
-  },
-  hubSection: {
-    marginTop: 16,
-  },
-  hubOptions: {
-    gap: 12,
-    marginTop: 12,
-  },
+  dateModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  dateModalTitle: { fontSize: 20, fontWeight: '700', color: '#1F2937' },
+  datePickerWrapper: { alignItems: 'center', justifyContent: 'center', marginVertical: 20 },
+  dateActions: { marginTop: 12, flexDirection: 'row', gap: 12 },
+  dateActionBtn: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  dateCancelBtn: { backgroundColor: '#F3F4F6' },
+  dateConfirmBtn: { backgroundColor: '#10B981' },
+  dateActionText: { fontWeight: '700' },
+  dateCancelText: { color: '#374151' },
+  dateConfirmText: { color: '#fff' },
+
+  hubSection: { marginTop: 16 },
+  hubOptions: { gap: 12, marginTop: 12 },
   hubOption: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1390,18 +1205,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
     gap: 12,
   },
-  hubOptionSelected: {
-    borderColor: '#10B981',
-    backgroundColor: '#D1FAE5',
-  },
-  hubOptionText: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#6B7280',
-    flex: 1,
-  },
-  hubOptionTextSelected: {
-    color: '#10B981',
-    fontWeight: '600',
-  },
+  hubOptionSelected: { borderColor: '#10B981', backgroundColor: '#D1FAE5' },
+  hubOptionText: { fontSize: 15, fontWeight: '500', color: '#6B7280', flex: 1 },
+  hubOptionTextSelected: { color: '#10B981', fontWeight: '600' },
 });

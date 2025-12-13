@@ -173,7 +173,9 @@ export default function MessagesScreen() {
         >
           <StatusBar style="dark" />
           <View style={styles.emptyState}>
-            <Ionicons name="chatbubbles-outline" size={64} color="#D1D5DB" />
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="chatbubbles-outline" size={64} color="#D1D5DB" />
+            </View>
             <Text style={styles.emptyText}>
               Please sign in to view messages
             </Text>
@@ -236,7 +238,9 @@ export default function MessagesScreen() {
         >
           {conversations.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="chatbubbles-outline" size={64} color="#D1D5DB" />
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="chatbubbles-outline" size={64} color="#D1D5DB" />
+              </View>
               <Text style={styles.emptyText}>No conversations yet</Text>
               <Text style={styles.emptySubtext}>
                 Start messaging about items to see conversations here
@@ -362,7 +366,9 @@ export default function MessagesScreen() {
               </View>
             ) : messages.length === 0 ? (
               <View style={styles.messagesEmpty}>
-                <Ionicons name="chatbubbles-outline" size={64} color="#D1D5DB" />
+                <View style={styles.emptyIconContainer}>
+                  <Ionicons name="chatbubbles-outline" size={64} color="#D1D5DB" />
+                </View>
                 <Text style={styles.messagesEmptyText}>
                   No messages yet
                 </Text>
@@ -478,28 +484,33 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#F9FAFB',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#F9FAFB',
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
+    paddingTop: 20,
+    paddingBottom: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#111827',
     marginBottom: 4,
     letterSpacing: -0.5,
   },
   headerSubtitle: {
     fontSize: 14,
     color: '#6B7280',
+    fontWeight: '500',
   },
   scrollView: {
     flex: 1,
@@ -508,20 +519,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#fff',
     padding: 16,
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     marginBottom: 12,
-    borderRadius: 12,
+    borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   conversationAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#FEE2E2',
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FEF2F2',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -559,19 +572,27 @@ const styles = StyleSheet.create({
   },
   emptyState: {
     alignItems: 'center',
-    padding: 40,
-    marginTop: 60,
+    padding: 48,
+    marginTop: 64,
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
   },
   emptyText: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '600',
-    color: '#666',
-    marginTop: 16,
+    color: '#111827',
+    marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#999',
-    marginTop: 4,
+    color: '#6B7280',
     textAlign: 'center',
   },
   loginButton: {
@@ -632,8 +653,9 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   messagesEmptyText: {
-    fontSize: 16,
-    color: '#9CA3AF',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
     marginTop: 16,
   },
   messagesKeyboardView: {
@@ -668,8 +690,6 @@ const styles = StyleSheet.create({
   messageContentReceived: {
     backgroundColor: '#fff',
     borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   messageText: {
     fontSize: 15,

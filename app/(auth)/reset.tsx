@@ -1,5 +1,5 @@
 import Button from '@/components/Button';
-import Screen from '@/components/Screen';
+import Page from '@/components/Page';
 import Field from '@/components/TextField';
 import { supabase } from '@/lib/supabase';
 import { useState } from 'react';
@@ -17,7 +17,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <Screen>
+    <Page>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
@@ -31,7 +31,7 @@ export default function ResetPassword() {
           <Button title="Send reset link" onPress={onSubmit} />
         </ScrollView>
       </KeyboardAvoidingView>
-    </Screen>
+    </Page>
   );
 }
 
@@ -42,6 +42,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 16,
+    padding: 0,
   },
 });

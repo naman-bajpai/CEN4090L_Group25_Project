@@ -13,17 +13,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Page from '@/components/Page';
 
 // Assuming these components exist based on your provided code
 import Button from '@/components/Button';
-import Screen from '@/components/Screen';
 import Field from '@/components/TextField';
 import { checkIsAdmin } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 
 export default function LoginScreen() {
-  const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -67,137 +65,113 @@ export default function LoginScreen() {
   }
 
   return (
-    <Screen noPadding unsafe>
-      <LinearGradient colors={['#F8FAFC', '#EEF2FF']} style={styles.gradient}>
-        {/* Background Accents */}
-        <LinearGradient
-          colors={["#FEE2E2", "transparent"]}
-          style={styles.accentBlobTop}
-          start={{ x: 0.2, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        />
-        <LinearGradient
-          colors={["#E0E7FF", "transparent"]}
-          style={styles.accentBlobBottom}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        />
-
-        <View style={[styles.safeContent, { paddingTop: insets.top, paddingBottom: insets.bottom }]}> 
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.container}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-          >
-            <ScrollView
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-            >
-              <View style={styles.content}>
-                {/* Header Section */}
-                <View style={styles.header}>
-                  <View style={styles.logoBadge}>
-                    <LinearGradient
-                      colors={["#782F40", "#9A3D52"]}
-                      style={styles.logoInner}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                    >
-                      <Ionicons name="log-in" size={24} color="#fff" style={{ marginLeft: 2 }} />
-                    </LinearGradient>
-                  </View>
-                  <Text style={styles.title}>Welcome Back</Text>
-                  <Text style={styles.subtitle}>Sign in to continue</Text>
-                </View>
-
-                {/* Form Section */}
-                <View style={styles.form}>
-                  <Field
-                    label="Email Address"
-                    icon="mail-outline"
-                    placeholder="Enter your email"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    value={email}
-                    onChangeText={setEmail}
-                    returnKeyType="next"
-                    onSubmitEditing={() => passRef.current?.focus()}
-                  />
-
-                  <Field
-                    ref={passRef}
-                    label="Password"
-                    icon="lock-closed-outline"
-                    placeholder="Enter your password"
-                    secureTextEntry={!showPassword}
-                    value={password}
-                    onChangeText={setPassword}
-                    returnKeyType="go"
-                    onSubmitEditing={onSubmit}
-                    rightAccessory={
-                      <TouchableOpacity
-                        onPress={() => setShowPassword(!showPassword)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      >
-                        <Ionicons
-                          name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                          size={22}
-                          color="#6B7280"
-                        />
-                      </TouchableOpacity>
-                    }
-                  />
-
-                  {/* Forgot Password Link */}
-                  <View style={styles.forgotContainer}>
-                    <Link href="/(auth)/reset" asChild>
-                        <TouchableOpacity>
-                        <Text style={styles.forgotText}>Forgot Password?</Text>
-                        </TouchableOpacity>
-                    </Link>
-                  </View>
-
-                  <Button
-                    title={submitting ? 'Signing In...' : 'Sign In'}
-                    onPress={onSubmit}
-                    disabled={submitting}
-                  />
-
-                  <View style={styles.divider}>
-                    <View style={styles.dividerLine} />
-                    <Text style={styles.dividerText}>OR</Text>
-                    <View style={styles.dividerLine} />
-                  </View>
-
-                  {/* Toggle to Signup */}
-                  <View style={styles.footerContainer}>
-                    <Text style={styles.footerText}>Don't have an account? </Text>
-                    <Link href="/(auth)/signup" asChild>
-                      <TouchableOpacity>
-                        <Text style={styles.footerLink}>Sign Up</Text>
-                      </TouchableOpacity>
-                    </Link>
-                  </View>
-                </View>
+    <Page pad={false}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.content}>
+            {/* Header Section */}
+            <View style={styles.header}>
+              <View style={styles.logoBadge}>
+                <LinearGradient
+                  colors={["#782F40", "#9A3D52"]}
+                  style={styles.logoInner}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Ionicons name="log-in" size={24} color="#fff" style={{ marginLeft: 2 }} />
+                </LinearGradient>
               </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </View>
-      </LinearGradient>
-    </Screen>
+              <Text style={styles.title}>Welcome Back</Text>
+              <Text style={styles.subtitle}>Sign in to continue</Text>
+            </View>
+
+            {/* Form Section */}
+            <View style={styles.form}>
+              <Field
+                label="Email Address"
+                icon="mail-outline"
+                placeholder="Enter your email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+                value={email}
+                onChangeText={setEmail}
+                returnKeyType="next"
+                onSubmitEditing={() => passRef.current?.focus()}
+              />
+
+              <Field
+                ref={passRef}
+                label="Password"
+                icon="lock-closed-outline"
+                placeholder="Enter your password"
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+                returnKeyType="go"
+                onSubmitEditing={onSubmit}
+                rightAccessory={
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Ionicons
+                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                      size={22}
+                      color="#6B7280"
+                    />
+                  </TouchableOpacity>
+                }
+              />
+
+              {/* Forgot Password Link */}
+              <View style={styles.forgotContainer}>
+                <Link href="/(auth)/reset" asChild>
+                    <TouchableOpacity>
+                    <Text style={styles.forgotText}>Forgot Password?</Text>
+                    </TouchableOpacity>
+                </Link>
+              </View>
+
+              <Button
+                title={submitting ? 'Signing In...' : 'Sign In'}
+                onPress={onSubmit}
+                disabled={submitting}
+              />
+
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>OR</Text>
+                <View style={styles.dividerLine} />
+              </View>
+
+              {/* Toggle to Signup */}
+              <View style={styles.footerContainer}>
+                <Text style={styles.footerText}>Don't have an account? </Text>
+                <Link href="/(auth)/signup" asChild>
+                  <TouchableOpacity>
+                    <Text style={styles.footerLink}>Sign Up</Text>
+                  </TouchableOpacity>
+                </Link>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Page>
   );
 }
 
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
   container: {
-    flex: 1,
-  },
-  safeContent: {
     flex: 1,
   },
   scrollContent: {
@@ -287,23 +261,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#782F40',
     fontWeight: '700',
-  },
-  accentBlobTop: {
-    position: 'absolute',
-    top: -40,
-    right: -30,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    opacity: 0.4,
-  },
-  accentBlobBottom: {
-    position: 'absolute',
-    bottom: -30,
-    left: -30,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    opacity: 0.4,
   },
 });

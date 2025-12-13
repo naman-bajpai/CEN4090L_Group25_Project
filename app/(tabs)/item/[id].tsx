@@ -176,13 +176,13 @@ export default function ItemDetailScreen() {
       <StatusBar style="dark" />
       
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity
           style={styles.backButtonHeader}
           onPress={() => router.back()}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
+          <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Item Details</Text>
         <View style={styles.headerSpacer} />
@@ -449,7 +449,8 @@ export default function ItemDetailScreen() {
             <>
               <ScrollView
                 style={styles.messagesList}
-                contentContainerStyle={styles.messagesListContent}
+                contentContainerStyle={[styles.messagesListContent, { paddingBottom: 20 }]}
+                showsVerticalScrollIndicator={false}
               >
                 {messages.map((message) => {
                   const isSent = message.sender_id === session?.user.id;
@@ -461,11 +462,6 @@ export default function ItemDetailScreen() {
                         isSent ? styles.messageBubbleSent : styles.messageBubbleReceived,
                       ]}
                     >
-                      {!isSent && (
-                        <View style={styles.messageAvatar}>
-                          <Ionicons name="person" size={16} color="#782F40" />
-                        </View>
-                      )}
                       <View
                         style={[
                           styles.messageContent,
@@ -492,11 +488,6 @@ export default function ItemDetailScreen() {
                           })}
                         </Text>
                       </View>
-                      {isSent && (
-                        <View style={styles.messageAvatar}>
-                          <Ionicons name="person" size={16} color="#fff" />
-                        </View>
-                      )}
                     </View>
                   );
                 })}
@@ -504,43 +495,45 @@ export default function ItemDetailScreen() {
 
               <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                style={styles.messagesInputContainer}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
               >
-                <TextInput
-                  style={styles.messagesInput}
-                  placeholder="Type a message..."
-                  placeholderTextColor="#9CA3AF"
-                  value={messageText}
-                  onChangeText={setMessageText}
-                  multiline
-                  maxLength={500}
-                />
-                <TouchableOpacity
-                  style={[
-                    styles.messagesSendButton,
-                    (!messageText.trim() || sending) && styles.messagesSendButtonDisabled,
-                  ]}
-                  onPress={async () => {
-                    if (!messageText.trim() || !item || !session || sending) return;
-                    setSending(true);
-                    try {
-                      await sendMessage(item.id, item.user_id, messageText);
-                      setMessageText('');
-                      loadMessages();
-                    } catch (error: any) {
-                      Alert.alert('Error', error.message || 'Failed to send message');
-                    } finally {
-                      setSending(false);
-                    }
-                  }}
-                  disabled={!messageText.trim() || sending}
-                >
-                  {sending ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <Ionicons name="send" size={20} color="#fff" />
-                  )}
-                </TouchableOpacity>
+                <View style={[styles.messagesInputContainer, { paddingBottom: insets.bottom + 12 }]}>
+                  <TextInput
+                    style={styles.messagesInput}
+                    placeholder="Type a message..."
+                    placeholderTextColor="#9CA3AF"
+                    value={messageText}
+                    onChangeText={setMessageText}
+                    multiline
+                    maxLength={500}
+                  />
+                  <TouchableOpacity
+                    style={[
+                      styles.messagesSendButton,
+                      (!messageText.trim() || sending) && styles.messagesSendButtonDisabled,
+                    ]}
+                    onPress={async () => {
+                      if (!messageText.trim() || !item || !session || sending) return;
+                      setSending(true);
+                      try {
+                        await sendMessage(item.id, item.user_id, messageText);
+                        setMessageText('');
+                        loadMessages();
+                      } catch (error: any) {
+                        Alert.alert('Error', error.message || 'Failed to send message');
+                      } finally {
+                        setSending(false);
+                      }
+                    }}
+                    disabled={!messageText.trim() || sending}
+                  >
+                    {sending ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Ionicons name="send" size={20} color="#fff" />
+                    )}
+                  </TouchableOpacity>
+                </View>
               </KeyboardAvoidingView>
             </>
           )}
@@ -617,7 +610,7 @@ export default function ItemDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#F9FAFB',
   },
   flex: {
     flex: 1,
@@ -627,23 +620,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    backgroundColor: '#F9FAFB',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   backButtonHeader: {
     padding: 8,
+    marginRight: 8,
   },
   headerTitle: {
     flex: 1,
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#111827',
     textAlign: 'center',
-    marginRight: 40,
+    letterSpacing: -0.3,
   },
   headerSpacer: {
     width: 40,
@@ -653,18 +651,19 @@ const styles = StyleSheet.create({
   },
   itemImage: {
     width: '100%',
-    height: 300,
+    height: 320,
     backgroundColor: '#F3F4F6',
   },
   imagePlaceholder: {
     width: '100%',
-    height: 300,
-    backgroundColor: '#F3F4F6',
+    height: 320,
+    backgroundColor: '#F9FAFB',
     justifyContent: 'center',
     alignItems: 'center',
   },
   content: {
     padding: 20,
+    backgroundColor: '#F9FAFB',
   },
   titleSection: {
     flexDirection: 'row',
@@ -741,10 +740,15 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: '45%',
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   detailIconContainer: {
     width: 40,
@@ -782,10 +786,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   ownerAvatar: {
     width: 48,
@@ -819,8 +828,15 @@ const styles = StyleSheet.create({
   actionBar: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    paddingTop: 12,
-    backgroundColor: 'transparent',
+    paddingTop: 16,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 5,
     gap: 12,
   },
   actionButton: {
@@ -878,42 +894,50 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '80%',
+    maxHeight: '85%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: 24,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#111827',
+    letterSpacing: -0.3,
   },
   modalContent: {
-    padding: 20,
+    padding: 24,
   },
   modalSubtitle: {
     fontSize: 14,
     color: '#6B7280',
-    marginBottom: 20,
+    marginBottom: 24,
     lineHeight: 20,
+    fontWeight: '500',
   },
   messageInputContainer: {
     borderWidth: 1.5,
     borderColor: '#E5E7EB',
-    borderRadius: 12,
-    backgroundColor: '#FAFAFA',
+    borderRadius: 16,
+    backgroundColor: '#F9FAFB',
     marginBottom: 20,
   },
   messageInput: {
     padding: 16,
     fontSize: 16,
-    color: '#1F2937',
+    color: '#111827',
     minHeight: 120,
+    lineHeight: 22,
   },
   sendButton: {
     flexDirection: 'row',
@@ -923,6 +947,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     gap: 8,
+    shadowColor: '#782F40',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   sendButtonDisabled: {
     backgroundColor: '#D1D5DB',
@@ -957,7 +986,8 @@ const styles = StyleSheet.create({
   messagesHeaderTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1F2937',
+    color: '#111827',
+    letterSpacing: -0.3,
   },
   messagesNewButton: {
     padding: 8,
@@ -1002,7 +1032,6 @@ const styles = StyleSheet.create({
   },
   messagesListContent: {
     padding: 16,
-    paddingBottom: 20,
   },
   messageBubble: {
     flexDirection: 'row',
@@ -1014,15 +1043,6 @@ const styles = StyleSheet.create({
   },
   messageBubbleReceived: {
     justifyContent: 'flex-start',
-  },
-  messageAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FEF2F2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginHorizontal: 8,
   },
   messageContent: {
     maxWidth: '75%',
@@ -1037,8 +1057,6 @@ const styles = StyleSheet.create({
   messageContentReceived: {
     backgroundColor: '#fff',
     borderBottomLeftRadius: 4,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   messageText: {
     fontSize: 15,
@@ -1064,11 +1082,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 12,
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 5,
   },
   messagesInput: {
     flex: 1,
@@ -1078,9 +1101,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 15,
-    color: '#1F2937',
+    color: '#111827',
     maxHeight: 100,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#F3F4F6',
   },
   messagesSendButton: {
     width: 44,
