@@ -19,6 +19,7 @@ export type Database = {
           color: string | null
           created_at: string | null
           description: string | null
+          hub: Database["public"]["Enums"]["hub_name"] | null
           id: string
           image_path: string | null
           location: string | null
@@ -32,6 +33,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           description?: string | null
+          hub?: Database["public"]["Enums"]["hub_name"] | null
           id?: string
           image_path?: string | null
           location?: string | null
@@ -45,6 +47,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           description?: string | null
+          hub?: Database["public"]["Enums"]["hub_name"] | null
           id?: string
           image_path?: string | null
           location?: string | null
@@ -55,6 +58,44 @@ export type Database = {
           when_lost?: string | null
         }
         Relationships: []
+      }
+      messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          item_id: string
+          message: string
+          read: boolean | null
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          item_id: string
+          message: string
+          read?: boolean | null
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          item_id?: string
+          message?: string
+          read?: boolean | null
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -86,18 +127,24 @@ export type Database = {
           created_at: string | null
           full_name: string | null
           id: string
+          role: string | null
+          verified: boolean | null
         }
         Insert: {
           avatar_path?: string | null
           created_at?: string | null
           full_name?: string | null
           id: string
+          role?: string | null
+          verified?: boolean | null
         }
         Update: {
           avatar_path?: string | null
           created_at?: string | null
           full_name?: string | null
           id?: string
+          role?: string | null
+          verified?: boolean | null
         }
         Relationships: []
       }
@@ -106,11 +153,28 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      admin_delete_profile: {
+        Args: { target_user_id: string }
+        Returns: boolean
+      }
+      admin_unverify_student: {
+        Args: { target_user_id: string }
+        Returns: boolean
+      }
+      admin_verify_student: {
+        Args: { target_user_id: string }
+        Returns: boolean
+      }
+      is_admin: { Args: { user_id: string }; Returns: boolean }
     }
     Enums: {
+      hub_name:
+        | "Main Library Hub"
+        | "Student Center Hub"
+        | "Campus Services Hub"
       item_status: "open" | "claimed" | "closed"
       item_type: "lost" | "found"
+      user_role: "student" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -238,8 +302,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      hub_name: [
+        "Main Library Hub",
+        "Student Center Hub",
+        "Campus Services Hub",
+      ],
       item_status: ["open", "claimed", "closed"],
       item_type: ["lost", "found"],
+      user_role: ["student", "admin"],
     },
   },
 } as const

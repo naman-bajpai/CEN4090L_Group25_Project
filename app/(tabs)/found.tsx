@@ -77,6 +77,12 @@ function FoundItemCard({
           </Text>
         )}
         <View style={styles.itemFooter}>
+          {item.hub && (
+            <View style={[styles.itemMeta, styles.hubMeta]}>
+              <Ionicons name="storefront" size={14} color="#10B981" />
+              <Text style={[styles.itemMetaText, styles.hubMetaText]}>{item.hub}</Text>
+            </View>
+          )}
           {item.location && (
             <View style={styles.itemMeta}>
               <Ionicons name="location" size={14} color="#666" />
@@ -133,11 +139,18 @@ export default function FoundItemsScreen() {
   const [location, setLocation] = useState('');
   const [whenFound, setWhenFound] = useState('');
   const [showWhenFoundPicker, setShowWhenFoundPicker] = useState(false);
+  const [selectedHub, setSelectedHub] = useState<'Main Library Hub' | 'Student Center Hub' | 'Campus Services Hub' | null>(null);
   const today = useMemo(() => new Date(), []);
   const [pickerYear, setPickerYear] = useState<number>(new Date().getFullYear());
   const [pickerMonth, setPickerMonth] = useState<number>(new Date().getMonth() + 1);
   const [pickerDay, setPickerDay] = useState<number>(new Date().getDate());
   const [imageUri, setImageUri] = useState<string | null>(null);
+  
+  const hubs: Array<'Main Library Hub' | 'Student Center Hub' | 'Campus Services Hub'> = [
+    'Main Library Hub',
+    'Student Center Hub',
+    'Campus Services Hub',
+  ];
 
   const loadItems = async () => {
     try {
@@ -236,6 +249,7 @@ export default function FoundItemsScreen() {
     setLocation('');
     setWhenFound('');
     setImageUri(null);
+    setSelectedHub(null);
     setShowForm(false);
   };
 
@@ -279,6 +293,7 @@ export default function FoundItemsScreen() {
           location: location.trim() || null,
           when_lost: whenFound ? new Date(whenFound).toISOString() : null,
           status: 'open',
+          hub: selectedHub,
         },
         imageUri || undefined
       );
@@ -588,6 +603,44 @@ export default function FoundItemsScreen() {
                   }
                 />
               </TouchableOpacity>
+
+              {/* Hub Selection */}
+              <View style={styles.hubSection}>
+                <View style={styles.formSectionTitleContainer}>
+                  <Ionicons name="storefront" size={18} color="#10B981" />
+                  <Text style={styles.formSectionTitle}>Return Hub</Text>
+                </View>
+                <Text style={styles.formSectionSubtitle}>
+                  Select which hub you returned this item to
+                </Text>
+                <View style={styles.hubOptions}>
+                  {hubs.map((hub) => (
+                    <TouchableOpacity
+                      key={hub}
+                      style={[
+                        styles.hubOption,
+                        selectedHub === hub && styles.hubOptionSelected,
+                      ]}
+                      onPress={() => setSelectedHub(hub)}
+                      activeOpacity={0.7}
+                    >
+                      <Ionicons
+                        name={selectedHub === hub ? 'radio-button-on' : 'radio-button-off'}
+                        size={20}
+                        color={selectedHub === hub ? '#10B981' : '#9CA3AF'}
+                      />
+                      <Text
+                        style={[
+                          styles.hubOptionText,
+                          selectedHub === hub && styles.hubOptionTextSelected,
+                        ]}
+                      >
+                        {hub}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
             </View>
 
             {/* Submit Button */}
@@ -912,6 +965,16 @@ const styles = StyleSheet.create({
   itemMetaText: {
     fontSize: 12,
     color: '#666',
+  },
+  hubMeta: {
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  hubMetaText: {
+    color: '#10B981',
+    fontWeight: '600',
   },
   claimButton: {
     backgroundColor: '#10B981',
@@ -1309,5 +1372,36 @@ const styles = StyleSheet.create({
   },
   dateConfirmText: {
     color: '#fff',
+  },
+  hubSection: {
+    marginTop: 16,
+  },
+  hubOptions: {
+    gap: 12,
+    marginTop: 12,
+  },
+  hubOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FAFAFA',
+    gap: 12,
+  },
+  hubOptionSelected: {
+    borderColor: '#10B981',
+    backgroundColor: '#D1FAE5',
+  },
+  hubOptionText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#6B7280',
+    flex: 1,
+  },
+  hubOptionTextSelected: {
+    color: '#10B981',
+    fontWeight: '600',
   },
 });

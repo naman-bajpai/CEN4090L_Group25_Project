@@ -1,10 +1,7 @@
-import { checkIsAdmin } from '@/lib/api';
-import { useAuth } from '@/lib/session';
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface NavItem {
   name: string;
@@ -13,116 +10,28 @@ interface NavItem {
   route: string;
 }
 
-const baseNavItems: NavItem[] = [
-  {
-    name: 'home',
-    label: 'Home',
-    icon: 'home',
-    route: '/(tabs)/home',
-  },
-  {
-    name: 'found',
-    label: 'Found',
-    icon: 'search',
-    route: '/(tabs)/found',
-  },
-  {
-    name: 'lost',
-    label: 'Lost',
-    icon: 'add-circle',
-    route: '/(tabs)/lost',
-  },
-  {
-    name: 'messages',
-    label: 'Messages',
-    icon: 'chatbubble-ellipses',
-    route: '/(tabs)/messages',
-  },
-  {
-    name: 'profile',
-    label: 'Profile',
-    icon: 'person',
-    route: '/(tabs)/profile',
-  },
+const adminNavItems: NavItem[] = [
+  { name: 'overview', label: 'Overview', icon: 'stats-chart', route: '/(tabs)/admin/overview' },
+  { name: 'students', label: 'Students', icon: 'people', route: '/(tabs)/admin/students' },
+  { name: 'items', label: 'Items', icon: 'cube', route: '/(tabs)/admin/items' },
+  { name: 'profile', label: 'Profile', icon: 'person', route: '/(tabs)/admin/profile' },
 ];
 
-const adminNavItem: NavItem = {
-  name: 'admin',
-  label: 'Admin',
-  icon: 'shield-checkmark',
-  route: '/(tabs)/admin',
-};
-
-export default function BottomNav() {
+export default function AdminBottomNav() {
   const router = useRouter();
   const pathname = usePathname();
-  const insets = useSafeAreaInsets();
-  const { session } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [checkingAdmin, setCheckingAdmin] = useState(true);
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      if (!session) {
-        setIsAdmin(false);
-        setCheckingAdmin(false);
-        return;
-      }
-      try {
-        const adminStatus = await checkIsAdmin();
-        setIsAdmin(adminStatus);
-      } catch (error) {
-        setIsAdmin(false);
-      } finally {
-        setCheckingAdmin(false);
-      }
-    };
-    checkAdmin();
-  }, [session]);
-
-  // Build nav items based on admin status
-  const navItems = isAdmin
-    ? [...baseNavItems, adminNavItem]
-    : baseNavItems;
-
-  // Hide bottom nav on item detail pages, auth pages, and admin pages
-  const isAdminPage = pathname?.includes('/admin') || pathname?.startsWith('/(tabs)/admin');
-  const hideNav =
-    pathname?.includes('/item/') ||
-    pathname?.startsWith('/(auth)') ||
-    isAdminPage;
 
   const isActive = (route: string) => {
-    // Normalize pathname for comparison
     const normalizedPath = pathname || '';
-    
-    if (route === '/(tabs)/home') {
-      return normalizedPath === '/(tabs)/home' || 
-             normalizedPath === '/' || 
-             normalizedPath === '/(tabs)/index' ||
-             normalizedPath === '/(tabs)';
-    }
-    
-    // For other routes, check if pathname starts with the route
-    return normalizedPath.startsWith(route);
+    return normalizedPath === route || normalizedPath.startsWith(route);
   };
 
-  if (hideNav) {
-    return null;
-  }
-
   return (
-    <View
-      style={[
-        styles.container,
-        {
-          paddingBottom: Platform.OS === 'ios' ? Math.max(insets.bottom, 12) : 12,
-        },
-      ]}
-    >
+    <View style={[styles.container, { paddingBottom: 12 }]}>
       <View style={styles.navBar}>
-        {navItems.map((item) => {
+        {adminNavItems.map((item) => {
           const active = isActive(item.route);
+
           return (
             <TouchableOpacity
               key={item.name}
@@ -139,7 +48,9 @@ export default function BottomNav() {
                   />
                 </View>
               </View>
+
               {active && <View style={styles.activeDot} />}
+
               <Text style={[styles.label, active && styles.labelActive]}>
                 {item.label}
               </Text>

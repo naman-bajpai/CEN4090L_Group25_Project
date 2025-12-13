@@ -266,6 +266,16 @@ export default function ItemDetailScreen() {
                 </View>
               )}
 
+              {item.hub && item.type === 'found' && (
+                <View style={[styles.detailCard, styles.hubCard]}>
+                  <View style={[styles.detailIconContainer, styles.hubIconContainer]}>
+                    <Ionicons name="storefront" size={20} color="#10B981" />
+                  </View>
+                  <Text style={styles.detailLabel}>Returned To</Text>
+                  <Text style={[styles.detailValue, styles.hubValue]}>{item.hub}</Text>
+                </View>
+              )}
+
               {item.when_lost && (
                 <View style={styles.detailCard}>
                   <View style={styles.detailIconContainer}>
@@ -757,6 +767,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#1F2937',
+  },
+  hubCard: {
+    borderColor: '#10B981',
+    backgroundColor: '#F0FDF4',
+  },
+  hubIconContainer: {
+    backgroundColor: '#D1FAE5',
+  },
+  hubValue: {
+    color: '#10B981',
   },
   ownerCard: {
     flexDirection: 'row',

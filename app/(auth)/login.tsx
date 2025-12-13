@@ -1,7 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRef, useState } from 'react';
 import {
   Alert,
@@ -14,11 +13,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Assuming these components exist based on your provided code
 import Button from '@/components/Button';
 import Screen from '@/components/Screen';
 import Field from '@/components/TextField';
+import { checkIsAdmin } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 
 export default function LoginScreen() {
@@ -45,9 +46,18 @@ export default function LoginScreen() {
       if (error) {
         Alert.alert('Sign In Failed', error.message);
       } else {
-        // Usually, your root _layout.tsx will listen to auth state and redirect,
-        // but we can manually replace just in case.
-        router.replace('/(tabs)'); 
+        // Check if user is admin and redirect accordingly
+        try {
+          const isAdmin = await checkIsAdmin();
+          if (isAdmin) {
+            router.replace('/(tabs)/admin/overview');
+          } else {
+            router.replace('/(tabs)/home');
+          }
+        } catch (adminError) {
+          // If admin check fails, default to home
+          router.replace('/(tabs)/home');
+        }
       }
     } catch (error: any) {
       Alert.alert('Error', 'An unexpected error occurred.');
@@ -142,7 +152,7 @@ export default function LoginScreen() {
 
                   {/* Forgot Password Link */}
                   <View style={styles.forgotContainer}>
-                    <Link href="/(auth)/forgot-password" asChild>
+                    <Link href="/(auth)/reset" asChild>
                         <TouchableOpacity>
                         <Text style={styles.forgotText}>Forgot Password?</Text>
                         </TouchableOpacity>

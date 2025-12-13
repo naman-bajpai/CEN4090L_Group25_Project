@@ -1,8 +1,9 @@
+import { checkIsAdmin } from '@/lib/api';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -11,17 +12,47 @@ import { useAuth } from '@/lib/session'; // <-- new
 export default function LandingScreen() {
   const { session, loading } = useAuth();
   const insets = useSafeAreaInsets();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!session) {
+        setIsAdmin(false);
+        setCheckingAdmin(false);
+        return;
+      }
+      try {
+        const adminStatus = await checkIsAdmin();
+        setIsAdmin(adminStatus);
+      } catch (error) {
+        setIsAdmin(false);
+      } finally {
+        setCheckingAdmin(false);
+      }
+    };
+
+    if (session && !loading) {
+      setCheckingAdmin(true);
+      checkAdmin();
+    }
+  }, [session, loading]);
 
   // While checking session, show nothing or a minimal splash.
-  if (loading) return (
+  if (loading || checkingAdmin) return (
     <View style={{ flex: 1 }}>
       <StatusBar style="light" />
       <LinearGradient colors={['#1E3A8A', '#3B82F6', '#60A5FA']} style={styles.gradient} />
     </View>
   );
 
-  // If signed in, go straight to the tabs.
-  if (session) return <Redirect href="/(tabs)/home" />;
+  // If signed in, redirect based on admin status
+  if (session) {
+    if (isAdmin) {
+      return <Redirect href="/(tabs)/admin/overview" />;
+    }
+    return <Redirect href="/(tabs)/home" />;
+  }
 
   // Otherwise show the public landing screen.
   return (

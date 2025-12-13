@@ -15,6 +15,11 @@ export default function TabLayout() {
         <Stack.Screen name="lost" />
         <Stack.Screen name="messages" />
         <Stack.Screen name="profile" />
+        <Stack.Screen name="admin" />
+        <Stack.Screen name="admin/overview" />
+        <Stack.Screen name="admin/students" />
+        <Stack.Screen name="admin/items" />
+        <Stack.Screen name="admin/profile" />
         <Stack.Screen name="item/[id]" />
       </Stack>
       <BottomNav />

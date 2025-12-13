@@ -5,8 +5,23 @@ create table if not exists public.profiles (
   created_at timestamptz default now()
 );
 
-create type if not exists public.item_type as enum ('lost','found');
-create type if not exists public.item_status as enum ('open','claimed','closed');
+do $$ begin
+  create type public.item_type as enum ('lost','found');
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create type public.item_status as enum ('open','claimed','closed');
+exception
+  when duplicate_object then null;
+end $$;
+
+do $$ begin
+  create type public.hub_name as enum ('Main Library Hub','Student Center Hub','Campus Services Hub');
+exception
+  when duplicate_object then null;
+end $$;
 
 create table if not exists public.items (
   id uuid primary key default gen_random_uuid(),
@@ -19,6 +34,7 @@ create table if not exists public.items (
   when_lost timestamptz,
   image_path text,
   status public.item_status default 'open',
+  hub public.hub_name,
   created_at timestamptz default now()
 );
 

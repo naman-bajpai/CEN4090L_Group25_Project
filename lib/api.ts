@@ -481,3 +481,217 @@ export async function getConversations(userId: string) {
   return [];
 }
 
+// ============================================
+// ADMIN API FUNCTIONS
+// ============================================
+
+/**
+ * Check if the current user is an admin
+ */
+export async function checkIsAdmin(): Promise<boolean> {
+  const { data: session } = await supabase.auth.getSession();
+  if (!session?.session?.user) {
+    return false;
+  }
+
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', session.session.user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+
+  return profile?.role === 'admin';
+}
+
+/**
+ * Get all students (admin only)
+ * Returns all profiles with their information
+ */
+export async function getAllStudents() {
+  const isAdmin = await checkIsAdmin();
+  if (!isAdmin) {
+    throw new Error('Only admins can view all students');
+  }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Admin function to update any item (admin only)
+ */
+export async function adminUpdateItem(itemId: string, updates: TablesUpdate<'items'>) {
+  const isAdmin = await checkIsAdmin();
+  if (!isAdmin) {
+    throw new Error('Only admins can update any item');
+  }
+
+  const { data, error } = await supabase
+    .from('items')
+    .update(updates)
+    .eq('id', itemId)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+
+  const enriched = await enrichItemsWithProfiles([data]);
+  return enriched[0];
+}
+
+/**
+ * Admin function to delete any item (admin only)
+ */
+export async function adminDeleteItem(itemId: string) {
+  const isAdmin = await checkIsAdmin();
+  if (!isAdmin) {
+    throw new Error('Only admins can delete any item');
+  }
+
+  const { error } = await supabase
+    .from('items')
+    .delete()
+    .eq('id', itemId);
+
+  if (error) throw error;
+}
+
+/**
+ * Admin function to delete a student profile (admin only)
+ * This will also delete the user's auth account if needed
+ */
+export async function adminDeleteStudent(userId: string) {
+  const isAdmin = await checkIsAdmin();
+  if (!isAdmin) {
+    throw new Error('Only admins can delete students');
+  }
+
+  // Call the database function
+  const { data, error } = await supabase.rpc('admin_delete_profile', {
+    target_user_id: userId,
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Admin function to verify a student (admin only)
+ */
+export async function adminVerifyStudent(userId: string) {
+  const isAdmin = await checkIsAdmin();
+  if (!isAdmin) {
+    throw new Error('Only admins can verify students');
+  }
+
+  // Call the database function
+  const { data, error } = await supabase.rpc('admin_verify_student', {
+    target_user_id: userId,
+  });
+
+  if (error) throw error;
+
+  // Return updated profile
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (profileError) throw profileError;
+  return profile;
+}
+
+/**
+ * Admin function to unverify a student (admin only)
+ */
+export async function adminUnverifyStudent(userId: string) {
+  const isAdmin = await checkIsAdmin();
+  if (!isAdmin) {
+    throw new Error('Only admins can unverify students');
+  }
+
+  // Call the database function
+  const { data, error } = await supabase.rpc('admin_unverify_student', {
+    target_user_id: userId,
+  });
+
+  if (error) throw error;
+
+  // Return updated profile
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (profileError) throw profileError;
+  return profile;
+}
+
+/**
+ * Admin function to get all items (admin only)
+ * Returns all items regardless of status or ownership
+ */
+export async function adminGetAllItems(filters?: {
+  type?: 'lost' | 'found';
+  status?: 'open' | 'claimed' | 'closed';
+  limit?: number;
+}) {
+  const isAdmin = await checkIsAdmin();
+  if (!isAdmin) {
+    throw new Error('Only admins can view all items');
+  }
+
+  let query = supabase
+    .from('items')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (filters?.type) {
+    query = query.eq('type', filters.type);
+  }
+  if (filters?.status) {
+    query = query.eq('status', filters.status);
+  }
+  if (filters?.limit) {
+    query = query.limit(filters.limit);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return enrichItemsWithProfiles(data || []);
+}
+
+/**
+ * Admin function to update a student profile (admin only)
+ * Allows admins to update any profile including role and verified status
+ */
+export async function adminUpdateStudent(userId: string, updates: TablesUpdate<'profiles'>) {
+  const isAdmin = await checkIsAdmin();
+  if (!isAdmin) {
+    throw new Error('Only admins can update student profiles');
+  }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
