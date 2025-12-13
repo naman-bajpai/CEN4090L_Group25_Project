@@ -678,6 +678,7 @@ export async function adminGetAllItems(filters?: {
  * Admin function to update a student profile (admin only)
  * Allows admins to update any profile including role and verified status
  */
+
 export async function adminUpdateStudent(userId: string, updates: TablesUpdate<'profiles'>) {
   const isAdmin = await checkIsAdmin();
   if (!isAdmin) {
@@ -695,3 +696,34 @@ export async function adminUpdateStudent(userId: string, updates: TablesUpdate<'
   return data;
 }
 
+/*Function to search for images*/
+
+export async function searchLostItemsWithImageAI(
+  imageUri: string,
+  options?: { limit?: number; minScore?: number }
+): Promise<ItemWithMatchScore[]> {
+  const formData = new FormData();
+
+  formData.append('image', {
+    uri: imageUri,
+    name: 'query.jpg',
+    type: 'image/jpeg',
+  } as any);
+
+  if (options?.limit) formData.append('limit', String(options.limit));
+  if (options?.minScore) formData.append('minScore', String(options.minScore));
+
+  const res = await fetch(`${API_URL}/search/lost/image`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${await getAccessToken()}`,
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    throw new Error('Image search failed');
+  }
+
+  return res.json();
+}
